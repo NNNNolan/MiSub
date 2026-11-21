@@ -121,6 +121,30 @@ describe('api-handler storage helper usage', () => {
         expect(payload.profiles).toHaveLength(1);
     });
 
+    it.each([
+        [undefined, 'preset'],
+        ['builtin', 'builtin'],
+    ])(
+        'exposes the same rule source in data and settings for stored mode %s',
+        async (mode, expected) => {
+            const { handleDataRequest, handleSettingsGet } =
+                await import('../../functions/modules/api-handler.js');
+            const stored = Object.freeze({
+                transformConfig: 'https://example.com/legacy.ini',
+                ...(mode && { transformConfigMode: mode }),
+            });
+            settingsCacheGet.mockResolvedValue(stored);
+            getAllSubscriptions.mockResolvedValue([]);
+            getAllProfiles.mockResolvedValue([]);
+            const env = { MISUB_DB: {} };
+            const data = await (await handleDataRequest(env)).json();
+            const settings = await (await handleSettingsGet(env)).json();
+            const expectedSettings = { ...stored, transformConfigMode: expected };
+            expect(data.config).toMatchObject(expectedSettings);
+            expect(settings).toMatchObject(expectedSettings);
+        }
+    );
+
     it('handleMisubsSave diff mode reads current data through getAll helper APIs', async () => {
         const { handleMisubsSave } = await import('../../functions/modules/api-handler.js');
 

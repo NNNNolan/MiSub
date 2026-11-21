@@ -1,9 +1,10 @@
 <script setup>
-    import { computed, ref, watch } from 'vue';
+    import { computed, watch } from 'vue';
     import TransformSelector from '../../forms/TransformSelector.vue';
     import Input from '../../ui/Input.vue';
     import Switch from '../../ui/Switch.vue';
     import OperatorChain from '../../features/Operators/OperatorChain.vue';
+    import { isAutomaticTransformConfig } from '@/constants/acl4ssr-configs.js';
     import { getLocalizedTransformAssetByUrl } from '@/constants/transform-assets';
     import { useI18n } from '@/i18n/index.js';
 
@@ -44,11 +45,18 @@
     });
 
     const globalConfigLabel = computed(() => {
-        const mode = props.globalSettings?.transformConfigMode || 'builtin';
-        if (mode === 'builtin') return t('profileModal.builtinAutoRoute');
-        const url = props.globalSettings?.transformConfig || '';
+        const { transformConfigMode: mode, transformConfig: url } = props.globalSettings || {};
+        if (isAutomaticTransformConfig(mode, url)) return t('settings.transformBuiltinAuto');
         const asset = getLocalizedTransformAssetByUrl(url, t);
         return asset ? asset.name : url ? t('profileModal.customUrl') : t('profileModal.notSet');
+    });
+
+    const usesAutomaticRules = computed(() => {
+        const settings =
+            props.localProfile.transformConfigMode === 'global'
+                ? props.globalSettings || {}
+                : props.localProfile;
+        return isAutomaticTransformConfig(settings.transformConfigMode, settings.transformConfig);
     });
 
     const transformModeOptions = [
@@ -72,7 +80,6 @@
         { key: 'list', label: t('profileModal.outputList'), icon: '📋' },
     ];
 
-    const selectedTransformAsset = ref(null);
     const emit = defineEmits(['toggle-advanced']);
 
     const isExternalEngine = computed(() => {
@@ -83,19 +90,14 @@
     });
 
     const enforceExternalSchemeConstraints = () => {
-        const enabled = isExternalEngine.value;
-        if (!enabled) return;
-
-        if (
-            props.localProfile.transformConfigMode === 'builtin' ||
-            props.localProfile.transformConfigMode === 'custom_template'
-        ) {
+        const mode = props.localProfile.transformConfigMode;
+        if (!isExternalEngine.value || mode === 'global' || mode === 'builtin') return;
+        if (mode === 'custom_template') {
             props.localProfile.transformConfigMode = 'preset';
         }
 
         if (/^(builtin|custom):/.test(String(props.localProfile.transformConfig || ''))) {
             props.localProfile.transformConfig = '';
-            selectedTransformAsset.value = null;
         }
     };
 
@@ -258,8 +260,8 @@
                             <option value="global">
                                 {{ t('profileModal.followGlobalScheme') }}
                             </option>
-                            <option value="builtin" :disabled="isExternalEngine">
-                                {{ t('profileModal.builtinAutoRoute') }}
+                            <option value="builtin">
+                                {{ t('settings.transformBuiltinAuto') }}
                             </option>
                             <option
                                 v-for="option in transformModeOptions.slice(1)"
@@ -271,10 +273,16 @@
                             </option>
                         </select>
                         <p
+                            v-if="usesAutomaticRules"
+                            class="mt-1 text-[10px] leading-relaxed text-gray-500 dark:text-gray-400"
+                        >
+                            {{ t('settings.transformBuiltinHint') }}
+                        </p>
+                        <p
                             v-if="isExternalEngine"
                             class="mt-1 text-[10px] leading-relaxed text-amber-600 dark:text-amber-400"
                         >
-                            {{ t('profileModal.externalEngineHint') }}
+                            {{ t('settings.transformExternalWarning') }}
                         </p>
                         <div
                             v-if="localProfile.transformConfigMode === 'global'"
@@ -342,15 +350,18 @@
                         >
                         <TransformSelector
                             v-model="localProfile.transformConfig"
-                            @select-asset="selectedTransformAsset = $event"
                             type="config"
-                            :placeholder="t('profileModal.presetPlaceholder')"
+                            :placeholder="
+                                localProfile.transformConfigMode === 'preset'
+                                    ? t('settings.transformBuiltinAuto')
+                                    : t('profileModal.presetPlaceholder')
+                            "
                             :custom-placeholder="t('profileModal.remoteTemplatePlaceholder')"
                             :force-custom="localProfile.transformConfigMode === 'custom'"
                             :custom-templates-only="
                                 localProfile.transformConfigMode === 'custom_template'
                             "
-                            :allowEmpty="false"
+                            :allow-empty="localProfile.transformConfigMode === 'preset'"
                             :exclude-builtin-assets="isExternalEngine"
                         />
                         <p
@@ -390,23 +401,15 @@
                         />
                     </div>
 
-                    <!-- 内置规则等级 (当切换到内置引擎，或切换到第三方引擎但使用内置分流方案时显示) -->
                     <div v-if="!isExternalEngine">
                         <label
                             class="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1.5"
-                            >{{ t('profileModal.ruleLevelLabel') }}</label
+                            >{{ t('settings.transformRuleLevel') }}</label
                         >
                         <select
                             v-model="localProfile.ruleLevel"
-                            :disabled="
-                                localProfile.transformConfigMode !== 'builtin' &&
-                                localProfile.transformConfigMode !== 'global'
-                            "
-                            :class="{
-                                'opacity-50 cursor-not-allowed':
-                                    localProfile.transformConfigMode !== 'builtin' &&
-                                    localProfile.transformConfigMode !== 'global',
-                            }"
+                            :disabled="!usesAutomaticRules"
+                            :class="{ 'opacity-50 cursor-not-allowed': !usesAutomaticRules }"
                             class="block w-full px-3 py-2 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 misub-radius-md sm:text-sm dark:text-white transition-all"
                         >
                             <option value="">{{ t('profileModal.followGlobalLevel') }}</option>

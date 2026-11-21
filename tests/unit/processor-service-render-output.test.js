@@ -1,10 +1,13 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import yaml from 'js-yaml';
+import { generateBuiltinClashConfig } from '../../functions/modules/subscription/builtin-clash-generator.js';
 import {
     ProcessorService,
     isClashYamlProfileTemplate,
     isIniTemplateSource,
 } from '../../functions/services/processor-service.js';
+
+vi.mock('../../functions/modules/subscription/builtin-clash-generator.js', { spy: true });
 
 const NODE_LIST = 'trojan://pass@1.1.1.1:443#HK-01';
 
@@ -81,6 +84,45 @@ MATCH,MyGroup
         expect(result.contentType).toBe('application/x-yaml; charset=utf-8');
         expect(result.content).toContain('name: MyGroup');
         expect(result.content).toContain('MATCH,MyGroup');
+        expect(generateBuiltinClashConfig).not.toHaveBeenCalled();
+    });
+
+    it.each([
+        ['empty response', ''],
+        ['HTML response', '<!doctype html><pre>\n[Rule]\nMATCH,DIRECT\n</pre>'],
+        ['groups without rules', '[custom]\ncustom_proxy_group=Proxy`select`.*'],
+        ['invalid ruleset', '[custom]\nruleset=DIRECT,'],
+        [
+            'invalid source before FINAL',
+            '[custom]\nruleset=DIRECT,not-a-url\nruleset=DIRECT,[]FINAL',
+        ],
+    ])('rejects a remote INI with %s instead of returning a different config', async (_, text) => {
+        fetch.mockResolvedValueOnce(new Response(text, { status: 200 }));
+
+        await expect(
+            ProcessorService.renderOutput({
+                targetFormat: 'clash',
+                combinedNodeList: NODE_LIST,
+                config: {},
+                templateSource: { kind: 'remote', value: 'https://example.com/template.ini' },
+                storageAdapter,
+            })
+        ).rejects.toThrow(/invalid remote INI template/i);
+    });
+
+    it('preserves node options and the Stash subscription URL with an INI template', async () => {
+        const result = await ProcessorService.renderOutput({
+            targetFormat: 'clash',
+            combinedNodeList: NODE_LIST,
+            config: {},
+            builtinOptions: { enableTfo: true, addFlagEmoji: false, userAgent: 'Stash/2.5.3' },
+            templateSource: { kind: 'remote', value: 'https://example.com/template.ini' },
+            managedConfigUrl: 'https://example.com/sub',
+            storageAdapter,
+        });
+
+        expect(result.content.split('\n')[0]).toBe('#SUBSCRIBED https://example.com/sub');
+        expect(yaml.load(result.content).proxies[0]).toMatchObject({ name: 'HK-01', tfo: true });
     });
 
     it('uses builtin rendering when templateSource is omitted', async () => {
@@ -97,6 +139,42 @@ MATCH,MyGroup
         expect(result.contentType).toBe('application/x-yaml; charset=utf-8');
         expect(result.content).toContain('proxies:');
         expect(fetch).not.toHaveBeenCalled();
+        expect(generateBuiltinClashConfig).toHaveBeenCalledTimes(1);
+    });
+
+    it.each(['base64', 'unsupported'])(
+        'skips configured templates for %s',
+        async (targetFormat) => {
+            const result = await ProcessorService.renderOutput({
+                targetFormat,
+                combinedNodeList: NODE_LIST,
+                config: {},
+                templateSource: { kind: 'remote', value: 'https://example.com/template.ini' },
+                storageAdapter,
+            });
+
+            expect(atob(result.content)).toBe(NODE_LIST);
+            expect(fetch).not.toHaveBeenCalled();
+        }
+    );
+
+    it('does not disguise empty output from a supported generator as Base64', async () => {
+        generateBuiltinClashConfig.mockReturnValueOnce('');
+        await expect(
+            ProcessorService.renderOutput({ targetFormat: 'clash', combinedNodeList: NODE_LIST })
+        ).rejects.toThrow('No clash configuration was generated');
+    });
+
+    it('applies the selected INI to versioned Surge requests', async () => {
+        const result = await ProcessorService.renderOutput({
+            targetFormat: 'surge&ver=5',
+            combinedNodeList: NODE_LIST,
+            config: {},
+            templateSource: { kind: 'remote', value: 'https://example.com/template.ini' },
+            storageAdapter,
+        });
+
+        expect(result.content).toContain('FINAL,MyGroup');
     });
 
     it('renders remote Clash YAML profile templates by injecting MiSub nodes locally', async () => {

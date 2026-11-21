@@ -4,7 +4,6 @@ import { useToastStore } from './toast';
 import { useSettingsStore } from './settings';
 import { useEditorStore } from './editor';
 import { createStorageCache } from '../utils/cache-helper.js';
-import { DEFAULT_SETTINGS } from '../constants/default-settings.js';
 import { TIMING } from '../constants/timing.js';
 import { api } from '../lib/http.js';
 import { t } from '../i18n/index.js';
@@ -56,7 +55,7 @@ export const useDataStore = defineStore('data', () => {
             subscriptions.value = cleanSubs;
             profiles.value = data.profiles || [];
             ruleTemplates.value = data.ruleTemplates || [];
-            settingsStore.setConfig({ ...DEFAULT_SETTINGS, ...data.config });
+            settingsStore.setConfig(data.config);
 
             updateSnapshot();
             lastUpdated.value = new Date();

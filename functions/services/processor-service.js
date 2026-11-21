@@ -4,7 +4,9 @@
  */
 
 import { generateCombinedNodeList } from './subscription-service.js';
-import { transformBuiltinSubscription } from '../modules/subscription/transformer-factory.js';
+import { getBuiltinSubscriptionGenerator } from '../modules/subscription/transformer-factory.js';
+import { normalizeTemplateTarget } from '../modules/subscription/template-compatibility.js';
+import { withStashSubscriptionHeader } from '../modules/subscription/builtin-clash-generator.js';
 import {
     renderClashFromIniTemplate,
     renderSingboxFromIniTemplate,
@@ -205,33 +207,17 @@ export class ProcessorService {
             userInfoHeader,
         } = options || {};
 
-        // Check for Base64 (simplest case)
-        if (targetFormat === 'base64') {
-            return {
-                content: base64EncodeUtf8(combinedNodeList),
-                contentType: 'text/plain; charset=utf-8',
-                headers: userInfoHeader ? { 'Subscription-Userinfo': userInfoHeader } : {},
-            };
-        }
-
-        // Handle built-in generation with optional templates
-        const builtinProxyContent = transformBuiltinSubscription(combinedNodeList, targetFormat, {
-            ...builtinOptions,
-            managedConfigUrl,
-        });
-
-        if (!builtinProxyContent) {
-            // Fallback to raw Base64 if generator fails
-            return {
-                content: base64EncodeUtf8(combinedNodeList),
-                contentType: 'text/plain; charset=utf-8',
-                headers: userInfoHeader ? { 'Subscription-Userinfo': userInfoHeader } : {},
-            };
-        }
-
-        let finalContent = builtinProxyContent;
-        let contentType = 'text/plain; charset=utf-8';
+        const normalizedTarget = normalizeTemplateTarget(targetFormat);
+        const generateBuiltin = getBuiltinSubscriptionGenerator(normalizedTarget);
         const headers = userInfoHeader ? { 'Subscription-Userinfo': userInfoHeader } : {};
+        if (!generateBuiltin) {
+            return {
+                content: base64EncodeUtf8(combinedNodeList),
+                contentType: 'text/plain; charset=utf-8',
+                headers,
+            };
+        }
+        let finalContent;
 
         const shouldApplyTemplate = !builtinOptions.hiddifyCompatible;
         const builtinTemplateEntry =
@@ -255,33 +241,28 @@ export class ProcessorService {
                 builtinTemplateEntry || customTemplateEntry
             );
 
-            if (templateText && isIniTemplate) {
+            if (isIniTemplate) {
                 const renderParams = {
+                    ...builtinOptions,
                     nodeList: combinedNodeList,
                     fileName: subName,
                     targetFormat,
-                    ruleLevel: builtinOptions.ruleLevel,
                     interval: config.UpdateInterval || 86400,
                     managedConfigUrl,
-                    skipCertVerify: builtinOptions.skipCertVerify,
-                    enableUdp: builtinOptions.enableUdp,
-                    isMeta: builtinOptions.isMeta,
-                    customDnsOverride: builtinOptions.customDnsOverride || '',
-                    dnsMode: builtinOptions.dnsMode || 'clean',
+                    requireRules: templateSource.kind === 'remote',
                 };
 
-                switch (targetFormat) {
+                switch (normalizedTarget) {
                     case 'clash':
-                        finalContent = renderClashFromIniTemplate(templateText, renderParams);
-                        contentType = 'application/x-yaml; charset=utf-8';
+                        finalContent = withStashSubscriptionHeader(
+                            renderClashFromIniTemplate(templateText, renderParams),
+                            renderParams
+                        );
                         break;
                     case 'singbox':
-                    case 'sing-box':
                         finalContent = renderSingboxFromIniTemplate(templateText, renderParams);
-                        contentType = 'application/json; charset=utf-8';
                         break;
                     case 'surge':
-                    case 'surge&ver=4':
                         finalContent = renderSurgeFromIniTemplate(templateText, renderParams);
                         break;
                     case 'loon':
@@ -292,12 +273,11 @@ export class ProcessorService {
                         break;
                     case 'egern':
                         finalContent = renderEgernFromIniTemplate(templateText, renderParams);
-                        contentType = 'application/x-yaml; charset=utf-8';
                         break;
                 }
             } else if (
                 templateText &&
-                targetFormat === 'clash' &&
+                normalizedTarget === 'clash' &&
                 isClashYamlProfileTemplate(templateText)
             ) {
                 finalContent = renderClashYamlProfileTemplate(
@@ -305,17 +285,20 @@ export class ProcessorService {
                     combinedNodeList,
                     builtinOptions
                 );
-                contentType = 'application/x-yaml; charset=utf-8';
                 headers['X-MiSub-Template-Mode'] = 'clash-yaml-profile';
             }
         }
 
-        // Set proper content type for built-in formats if not set by template
-        if (contentType === 'text/plain; charset=utf-8') {
-            if (targetFormat === 'clash' || targetFormat === 'egern')
-                contentType = 'application/x-yaml; charset=utf-8';
-            else if (targetFormat === 'singbox' || targetFormat === 'sing-box')
-                contentType = 'application/json; charset=utf-8';
+        finalContent ??= generateBuiltin(combinedNodeList, {
+            ...builtinOptions,
+            managedConfigUrl,
+        });
+        if (!finalContent) throw new Error(`No ${normalizedTarget} configuration was generated`);
+        let contentType = 'text/plain; charset=utf-8';
+        if (normalizedTarget === 'clash' || normalizedTarget === 'egern') {
+            contentType = 'application/x-yaml; charset=utf-8';
+        } else if (normalizedTarget === 'singbox') {
+            contentType = 'application/json; charset=utf-8';
         }
 
         return {

@@ -156,6 +156,8 @@ npm run preview
 5. Copy the generated client link or QR code.
 6. Import the link into your preferred proxy client.
 
+Automatic routing uses [`ACL4SSR_Online.ini` from cmliu/ACL4SSR](https://github.com/cmliu/ACL4SSR/tree/main/Clash/config) for Clash/Mihomo. Choose another preset globally or per profile to use Full, Mini, CF, or WARP. Hiddify, other output formats, and node-only exports keep their native behavior. With the built-in engine, older Clash cores without text rule-provider support can request native rules using `level=std` in automatic mode.
+
 ## Operator Chain
 
 Profiles can inherit a global default operator chain or define their own processing flow. Available operators include:

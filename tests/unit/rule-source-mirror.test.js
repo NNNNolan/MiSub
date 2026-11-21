@@ -60,6 +60,30 @@ describe('pinRemoteRuleUrl - 规则源镜像重写', () => {
         expect(out).toBe('https://cdn.jsdelivr.net/gh/someone/somerepo@main/path/file.yaml');
     });
 
+    it.each([
+        ['refs/heads/main', 'main'],
+        ['refs/tags/v1.2.3', 'v1.2.3'],
+        ['e1f2a3b', 'e1f2a3b'],
+    ])('将 %s 规范为镜像与 raw 地址的同一版本', (pathRef, ref) => {
+        const source = `https://raw.githubusercontent.com/cmliu/ACL4SSR/${pathRef}/Clash/PlayStore.list`;
+        expect(pinRemoteRuleUrl(source)).toBe(
+            `https://cdn.jsdelivr.net/gh/cmliu/ACL4SSR@${ref}/Clash/PlayStore.list`
+        );
+        expect(pinRemoteRuleUrl(source, { mirror: false })).toBe(
+            `https://raw.githubusercontent.com/cmliu/ACL4SSR/${ref}/Clash/PlayStore.list`
+        );
+    });
+
+    it('先解析完整分支引用再锁定仓库版本', () => {
+        expect(
+            pinRemoteRuleUrl(
+                'https://raw.githubusercontent.com/ACL4SSR/ACL4SSR/refs/heads/master/Clash/BanAD.list'
+            )
+        ).toBe(
+            `https://cdn.jsdelivr.net/gh/ACL4SSR/ACL4SSR@${PINNED_RULE_REVISIONS.ACL4SSR}/Clash/BanAD.list`
+        );
+    });
+
     it('非 GitHub raw 的地址原样返回', () => {
         expect(pinRemoteRuleUrl('https://example.com/rules.yaml')).toBe(
             'https://example.com/rules.yaml'

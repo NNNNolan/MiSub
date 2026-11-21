@@ -65,13 +65,13 @@ function findGroup(model, groupName) {
 }
 
 describe('Builtin template rule audit', () => {
-    it('keeps exactly one builtin template marked as default and uses MiSub minimal as that default', () => {
-        const builtinDefaultAssets = TRANSFORM_ASSETS.configs.filter(
-            (asset) => asset.sourceType === 'builtin-preset' && asset.is_default
-        );
-
-        expect(builtinDefaultAssets).toHaveLength(1);
-        expect(builtinDefaultAssets[0].url).toBe('builtin:clash_misub_minimal');
+    it('marks only the cmliu Online preset as the default', () => {
+        expect(TRANSFORM_ASSETS.configs.filter((asset) => asset.is_default)).toEqual([
+            expect.objectContaining({
+                url: 'https://raw.githubusercontent.com/cmliu/ACL4SSR/main/Clash/config/ACL4SSR_Online.ini',
+                sourceType: 'preset',
+            }),
+        ]);
     });
 
     it('uses a consistent manual switch group name in MiSub minimal', () => {

@@ -78,6 +78,7 @@ describe('Data store settings cache', () => {
 
         const dataStore = createStore();
         expect(dataStore.hydrateFromData(initialData)).toBe(true);
+        expect(dataStore.settings.transformConfigMode).toBe('preset');
 
         await dataStore.saveSettings(nextSettings);
 
@@ -91,5 +92,6 @@ describe('Data store settings cache', () => {
         expect(settingsStore.config.siteName).toBe('new site');
         expect(settingsStore.config.enablePublicPage).toBe(true);
         expect(settingsStore.config.transformConfig).toBe('https://example.com/new.ini');
+        expect(settingsStore.config.transformConfigMode).toBe('preset');
     });
 });

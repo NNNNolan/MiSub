@@ -137,7 +137,6 @@ export const messages = {
         profileModal: {
             builtinEngine: '内置渲染引擎',
             externalBackend: '第三方后端',
-            builtinAutoRoute: '内置自动分流',
             customUrl: '自定义 URL',
             notSet: '未设置',
             followGlobalSettings: '跟随全局设置',
@@ -157,8 +156,6 @@ export const messages = {
             followGlobalConfig: '跟随全局配置',
             schemeLabel: '配置规则方案 (Scheme)',
             followGlobalScheme: '跟随全局方案',
-            externalEngineHint:
-                '第三方后端不支持 MiSub 内置规则源、内置模板和本地 custom: 模板，请选择预设远程模板或自定义 URL。',
             currentGlobal: '当前全局：{value}',
             backendOverride: '第三方后端地址 (Backend URL Override)',
             backendPlaceholder: '留空跟随全局；可填 api.v1.mk',
@@ -171,7 +168,6 @@ export const messages = {
             tuningTitle: '参数微调与后处理',
             tuningDesc: '细化控制转换参数与结果',
             expiresLabel: '到期时间 (过期后回退原始订阅)',
-            ruleLevelLabel: '内置规则等级 (仅内置自动分流生效)',
             followGlobalLevel: '跟随全局等级',
             ruleBase: '精简版 Base',
             ruleStandard: '标准版 Standard',
@@ -1133,7 +1129,7 @@ export const messages = {
                 '绑定现在按 Telegram 用户隔离，不同用户的订阅组不会再相互覆盖。',
             copyFailedManualSelect: '复制失败，请手动选择文本复制',
             copiedShort: '已复制',
-            transformBuiltinAuto: '使用内置自动分流',
+            transformBuiltinAuto: '自动（按客户端选择规则）',
             transformPreset: '选择预设规则模板',
             transformCustomUrl: '自定义远程规则 URL',
             transformCustomTemplate: '自定义规则模板',
@@ -1143,7 +1139,7 @@ export const messages = {
             transformSort: '节点排序',
             transformList: '输出为列表',
             transformBuiltinHint:
-                '推荐方案。系统根据目标客户端自动选择最佳的内置规则模板，无需额外配置。',
+                'Clash / Mihomo 使用 cmliu 的 ACL4SSR_Online.ini；Hiddify 和其他格式沿用当前引擎的原生规则。',
             transformPresetHint:
                 '从库中选择成熟的规则方案（如 ACL4SSR）。支持内置渲染及第三方后端转换。',
             transformCustomTemplateHint: '使用本地保存的自定义规则模板，避免依赖远程 .ini 地址。',
@@ -1159,12 +1155,12 @@ export const messages = {
             transformRulesDesc: '决定节点如何分流和过滤，无论引擎是谁，此配置逻辑均生效。',
             transformRuleSource: '1. 规则来源',
             transformExternalWarning:
-                '使用第三方订阅转换时，无法兼容 MiSub 内置规则、内置预设和本地 custom: 模板。请使用远程预设模板或自定义 URL。',
+                '第三方后端支持自动分流、远程预设和自定义 URL，不能加载 MiSub 内置预设或本地 custom: 模板。',
             transformEngineChangeNotice:
                 '切换到第三方后端会调整规则来源并关闭内置选项。原设置仍保存在本次页面状态中；切回内置引擎可恢复。',
             transformRestoreEngineSettings: '恢复内置设置',
             transformBuiltinParams: '内置引擎参数',
-            transformRuleLevel: '分流详细等级 (仅自动分流生效)',
+            transformRuleLevel: '原生规则等级（不影响 cmliu 预设）',
             transformRuleBase: '精简版 Base',
             transformRuleStd: '标准版 Standard (推荐)',
             transformRuleFull: '全量版 Full (全场景覆盖)',
@@ -1448,9 +1444,9 @@ export const messages = {
             helperCustomTemplatesOnly: '仅可选择已保存的 custom: 自定义规则模板。',
             helperExcludeBuiltin:
                 '第三方订阅转换仅支持远程模板 URL，无法兼容 MiSub 内置规则、内置预设和本地 custom: 模板。',
+            helperAcl4ssr:
+                '该预设使用 Clash 规则列表。内置引擎生成 Sing-box 时保留原生规则；第三方转换取决于所选后端。',
             helperDefault: '适用于统一模板渲染。',
-            thirdPartyNotice:
-                '使用第三方订阅转换时，无法兼容 MiSub 内置规则、内置预设和本地 custom: 模板。请使用远程预设模板或自定义 URL。',
             defaultGlobalOption: '默认 / 全局设置',
             pleaseSelect: '请选择...',
             customInputOption: '自定义输入...',
@@ -1481,8 +1477,8 @@ export const messages = {
         },
         transformAssets: {
             builtinMinimal: {
-                name: 'MiSub 内置 极简默认分流',
-                description: 'MiSub 自带的默认极简模板，适合日常通用、新手用户和优先稳定的场景。',
+                name: 'MiSub 内置 极简分流',
+                description: 'MiSub 自带的极简模板，适合只需要基本分流的用户。',
             },
             acl4ssrLite: {
                 name: 'MiSub 内置 ACL4SSR 精简分流',
@@ -1499,32 +1495,52 @@ export const messages = {
                     '内置完整 ACL4SSR 分流模板，可通过统一模板模型生成 Clash 与 Sing-Box 配置。',
             },
             cmOnlineDefault: {
-                name: 'CM_Online 默认版 识别港美地区(与Github同步)',
-                description: '经典 ACL4SSR 规则，适合 Clash 系列客户端。',
+                name: 'ACL4SSR_Online.ini（Clash / Mihomo 默认）',
+                description: '自动模式下 Clash / Mihomo 使用的 cmliu 标准分流模板。',
             },
             cmOnlineMultiCountry: {
-                name: 'CM_Online_MultiCountry 识别港美地区 负载均衡(与Github同步)',
+                name: 'ACL4SSR_Online_MultiCountry.ini（多地区）',
                 description: '适合需要多地区自动分组和负载均衡的 Clash 用户。',
             },
             cmOnlineMultiCountryCf: {
-                name: 'CM_Online_MultiCountry_CF 识别港美地区、CloudFlareCDN 负载均衡 Worker节点专用(与Github同步)',
+                name: 'ACL4SSR_Online_MultiCountry_CF.ini（多地区、Cloudflare CDN）',
                 description: 'Cloudflare Worker 节点场景专用的 Clash 预设。',
             },
             cmOnlineFull: {
-                name: 'CM_Online_Full 识别多地区分组(与Github同步)',
+                name: 'ACL4SSR_Online_Full.ini（完整版）',
                 description: '规则更完整，分组更细，适合作为 Clash 进阶预设。',
             },
             cmOnlineFullCf: {
-                name: 'CM_Online_Full_CF 识别多地区、CloudFlareCDN 分组 Worker节点专用(与Github同步)',
+                name: 'ACL4SSR_Online_Full_CF.ini（完整版、Cloudflare CDN）',
                 description: '面向 Worker/CDN 线路的完整 Clash 预设。',
             },
             cmOnlineFullMultiMode: {
-                name: 'CM_Online_Full_MultiMode 识别多地区 负载均衡(与Github同步)',
+                name: 'ACL4SSR_Online_Full_MultiMode.ini（完整多模式）',
                 description: '适合需要完整规则和多模式分组的 Clash 用户。',
             },
             cmOnlineFullMultiModeCf: {
-                name: 'CM_Online_Full_MultiMode_CF 识别多地区、CloudFlareCDN 负载均衡 Worker节点专用(与Github同步)',
+                name: 'ACL4SSR_Online_Full_MultiMode_CF.ini（完整多模式、Cloudflare CDN）',
                 description: '完整多模式的 Worker/CDN Clash 预设。',
+            },
+            cmOnlineFullMultiModeWarp: {
+                name: 'ACL4SSR_Online_Full_MultiMode_WARP.ini（完整多模式、WARP）',
+                description: '完整分流和多种选路模式，另设 WARP 节点组。',
+            },
+            cmOnlineMiniMultiCountry: {
+                name: 'ACL4SSR_Online_Mini_MultiCountry.ini（精简多地区）',
+                description: '精简分流规则，保留地区分组和自动测速。',
+            },
+            cmOnlineMiniMultiModeCf: {
+                name: 'ACL4SSR_Online_Mini_MultiMode_CF.ini（精简多模式、Cloudflare CDN）',
+                description: '精简分流，支持故障转移、负载均衡和 Cloudflare CDN 分组。',
+            },
+            cmOnlineMiniNoAutoCf: {
+                name: 'ACL4SSR_Online_Mini_NoAuto_CF.ini（精简手动、Cloudflare CDN）',
+                description: '手动选择节点，不自动测速，保留 Cloudflare CDN 分组。',
+            },
+            cmOnlineMultiCountryWarp: {
+                name: 'ACL4SSR_Online_MultiCountry_WARP.ini（多地区、WARP）',
+                description: '按地区分组，并为 WARP 节点单独测速。',
             },
         },
         d1Migration: {
@@ -1923,7 +1939,6 @@ export const messages = {
         profileModal: {
             builtinEngine: '内置渲染引擎',
             externalBackend: '第三方后端',
-            builtinAutoRoute: '内置自动分流',
             customUrl: '自定义 URL',
             notSet: '未设置',
             followGlobalSettings: '跟随全局设置',
@@ -1943,8 +1958,6 @@ export const messages = {
             followGlobalConfig: '跟随全局配置',
             schemeLabel: '配置规则方案 (Scheme)',
             followGlobalScheme: '跟随全局方案',
-            externalEngineHint:
-                '第三方后端不支持 MiSub 内置规则源、内置模板和本地 custom: 模板，请选择预设远程模板或自定义 URL。',
             currentGlobal: '当前全局：{value}',
             backendOverride: '第三方后端地址 (Backend URL Override)',
             backendPlaceholder: '留空跟随全局；可填 api.v1.mk',
@@ -1957,7 +1970,6 @@ export const messages = {
             tuningTitle: '参数微调与后处理',
             tuningDesc: '细化控制转换参数与结果',
             expiresLabel: '到期时间 (过期后回退原始订阅)',
-            ruleLevelLabel: '内置规则等级 (仅内置自动分流生效)',
             followGlobalLevel: '跟随全局等级',
             ruleBase: '精简版 Base',
             ruleStandard: '标准版 Standard',
@@ -1997,7 +2009,6 @@ export const messages = {
         profileModal: {
             builtinEngine: 'Built-in renderer',
             externalBackend: 'External backend',
-            builtinAutoRoute: 'Built-in routing',
             customUrl: 'Custom URL',
             notSet: 'Not set',
             followGlobalSettings: 'Follow global',
@@ -2017,8 +2028,6 @@ export const messages = {
             followGlobalConfig: 'Follow global config',
             schemeLabel: 'Scheme',
             followGlobalScheme: 'Follow global scheme',
-            externalEngineHint:
-                'External backend does not support MiSub built-in sources/templates or local custom: templates. Choose a remote preset or custom URL.',
             currentGlobal: 'Global: {value}',
             backendOverride: 'Backend URL override',
             backendPlaceholder: 'Leave empty for global; e.g. api.v1.mk',
@@ -2031,7 +2040,6 @@ export const messages = {
             tuningTitle: 'Parameters & post-processing',
             tuningDesc: 'Fine-tune conversion parameters and output',
             expiresLabel: 'Expiry date (falls back after expiry)',
-            ruleLevelLabel: 'Built-in rule level',
             followGlobalLevel: 'Follow global level',
             ruleBase: 'Base',
             ruleStandard: 'Standard',
@@ -3036,7 +3044,7 @@ export const messages = {
                 'Bindings are isolated by Telegram user, so different users no longer overwrite each other’s profiles.',
             copyFailedManualSelect: 'Copy failed. Select the text manually.',
             copiedShort: 'Copied',
-            transformBuiltinAuto: 'Use built-in auto routing',
+            transformBuiltinAuto: 'Automatic (by client)',
             transformPreset: 'Select preset rule template',
             transformCustomUrl: 'Custom remote rule URL',
             transformCustomTemplate: 'Custom rule template',
@@ -3046,7 +3054,7 @@ export const messages = {
             transformSort: 'Node sorting',
             transformList: 'Output as list',
             transformBuiltinHint:
-                'Recommended. The system automatically selects the best built-in rule template for the target client.',
+                'Clash / Mihomo uses ACL4SSR_Online.ini from cmliu. Hiddify and other formats keep the selected engine’s native rules.',
             transformPresetHint:
                 'Choose a mature rule profile such as ACL4SSR. Supports built-in rendering and external backend conversion.',
             transformCustomTemplateHint:
@@ -3064,12 +3072,12 @@ export const messages = {
             transformRulesDesc: 'Decides how nodes are routed and filtered, regardless of engine.',
             transformRuleSource: '1. Rule source',
             transformExternalWarning:
-                'External subscription conversion cannot use MiSub built-in rules, built-in presets, or local custom: templates. Use a remote preset template or custom URL.',
+                'External backends support automatic routing, remote presets and custom URLs, but cannot load MiSub built-in presets or local custom: templates.',
             transformEngineChangeNotice:
                 'Switching to an external backend changes the rule source and disables built-in options. Your previous settings stay in this page session and can be restored by switching back.',
             transformRestoreEngineSettings: 'Restore built-in settings',
             transformBuiltinParams: 'Built-in engine parameters',
-            transformRuleLevel: 'Routing detail level (auto routing only)',
+            transformRuleLevel: 'Native rule level (does not affect cmliu presets)',
             transformRuleBase: 'Base',
             transformRuleStd: 'Standard (recommended)',
             transformRuleFull: 'Full (all scenarios)',
@@ -3195,7 +3203,8 @@ export const messages = {
             resetDefault: 'Reset default',
             clearAll: 'Clear all',
             regexPinPlaceholder: 'Enter keyword or regex (e.g. AWS, dmit) and press Enter',
-            invalidRegexError: 'Invalid regular expression syntax. Please check brackets or escapes.',
+            invalidRegexError:
+                'Invalid regular expression syntax. Please check brackets or escapes.',
             emptyRegexPriorityItems:
                 'No pin rules yet. Add keywords or regexes above; unmatched nodes are placed after matched ones.',
             emptyPriorityItems:
@@ -3365,9 +3374,9 @@ export const messages = {
             helperCustomTemplatesOnly: 'Only saved custom: rule templates can be selected.',
             helperExcludeBuiltin:
                 'Third-party subconverter only supports remote template URLs; MiSub built-in rules, built-in presets and local custom: templates are not compatible.',
+            helperAcl4ssr:
+                'This preset uses Clash rule lists. The built-in engine keeps native Sing-box rules; external conversion depends on the selected backend.',
             helperDefault: 'Used for unified template rendering.',
-            thirdPartyNotice:
-                'When using a third-party subconverter, MiSub built-in rules, built-in presets and local custom: templates are not compatible. Please use a remote preset template or a custom URL.',
             defaultGlobalOption: 'Default / Global settings',
             pleaseSelect: 'Please select...',
             customInputOption: 'Custom input...',
@@ -3407,9 +3416,8 @@ export const messages = {
         },
         transformAssets: {
             builtinMinimal: {
-                name: 'MiSub Builtin — Minimal Default Routing',
-                description:
-                    'MiSub built-in minimal default template, suited to everyday use, beginners and stability-first scenarios.',
+                name: 'MiSub Builtin — Minimal Routing',
+                description: 'A built-in template for users who only need basic routing.',
             },
             acl4ssrLite: {
                 name: 'MiSub Builtin — ACL4SSR Lite Routing',
@@ -3427,34 +3435,57 @@ export const messages = {
                     'Built-in full ACL4SSR routing template that can generate Clash and Sing-Box configs through the unified template model.',
             },
             cmOnlineDefault: {
-                name: 'CM_Online Default — detects HK/US regions (synced with GitHub)',
-                description: 'Classic ACL4SSR rules, suited to Clash family clients.',
+                name: 'ACL4SSR_Online.ini (Clash / Mihomo default)',
+                description:
+                    'The standard cmliu template used by Clash / Mihomo in automatic mode.',
             },
             cmOnlineMultiCountry: {
-                name: 'CM_Online_MultiCountry — detects HK/US regions, load balancing (synced with GitHub)',
+                name: 'ACL4SSR_Online_MultiCountry.ini (multi-region)',
                 description:
                     'For Clash users who need automatic multi-region grouping and load balancing.',
             },
             cmOnlineMultiCountryCf: {
-                name: 'CM_Online_MultiCountry_CF — detects HK/US regions, CloudFlareCDN load balancing, for Worker nodes (synced with GitHub)',
+                name: 'ACL4SSR_Online_MultiCountry_CF.ini (multi-region, Cloudflare CDN)',
                 description: 'Clash preset dedicated to Cloudflare Worker node scenarios.',
             },
             cmOnlineFull: {
-                name: 'CM_Online_Full — detects multi-region grouping (synced with GitHub)',
+                name: 'ACL4SSR_Online_Full.ini (full)',
                 description:
                     'More complete rules with finer grouping; a good advanced Clash preset.',
             },
             cmOnlineFullCf: {
-                name: 'CM_Online_Full_CF — detects multi-region, CloudFlareCDN grouping, for Worker nodes (synced with GitHub)',
+                name: 'ACL4SSR_Online_Full_CF.ini (full, Cloudflare CDN)',
                 description: 'Complete Clash preset for Worker/CDN routes.',
             },
             cmOnlineFullMultiMode: {
-                name: 'CM_Online_Full_MultiMode — detects multi-region, load balancing (synced with GitHub)',
+                name: 'ACL4SSR_Online_Full_MultiMode.ini (full, multi-mode)',
                 description: 'For Clash users who need complete rules and multi-mode grouping.',
             },
             cmOnlineFullMultiModeCf: {
-                name: 'CM_Online_Full_MultiMode_CF — detects multi-region, CloudFlareCDN load balancing, for Worker nodes (synced with GitHub)',
+                name: 'ACL4SSR_Online_Full_MultiMode_CF.ini (full, multi-mode, Cloudflare CDN)',
                 description: 'Complete multi-mode Worker/CDN Clash preset.',
+            },
+            cmOnlineFullMultiModeWarp: {
+                name: 'ACL4SSR_Online_Full_MultiMode_WARP.ini (full, multi-mode, WARP)',
+                description: 'Full rules and multiple routing modes with a separate WARP group.',
+            },
+            cmOnlineMiniMultiCountry: {
+                name: 'ACL4SSR_Online_Mini_MultiCountry.ini (minimal, multi-region)',
+                description: 'Compact rules with regional groups and automatic latency tests.',
+            },
+            cmOnlineMiniMultiModeCf: {
+                name: 'ACL4SSR_Online_Mini_MultiMode_CF.ini (minimal, multi-mode, Cloudflare CDN)',
+                description:
+                    'Compact rules with failover, load balancing and a Cloudflare CDN group.',
+            },
+            cmOnlineMiniNoAutoCf: {
+                name: 'ACL4SSR_Online_Mini_NoAuto_CF.ini (minimal, manual, Cloudflare CDN)',
+                description:
+                    'Manual node selection with a Cloudflare CDN group and no latency tests.',
+            },
+            cmOnlineMultiCountryWarp: {
+                name: 'ACL4SSR_Online_MultiCountry_WARP.ini (multi-region, WARP)',
+                description: 'Regional groups with separate latency tests for WARP nodes.',
             },
         },
         d1Migration: {

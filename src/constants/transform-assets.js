@@ -1,3 +1,23 @@
+import { ACL4SSR_CONFIG_BASE, DEFAULT_ACL4SSR_CONFIG_URL } from './acl4ssr-configs.js';
+
+function acl4ssrPreset(id, key, variant) {
+    const url = variant
+        ? `${ACL4SSR_CONFIG_BASE}ACL4SSR_Online_${variant}.ini`
+        : DEFAULT_ACL4SSR_CONFIG_URL;
+    return {
+        id,
+        nameKey: `transformAssets.${key}.name`,
+        descriptionKey: `transformAssets.${key}.description`,
+        url,
+        group: 'cmliu/ACL4SSR',
+        is_default: url === DEFAULT_ACL4SSR_CONFIG_URL,
+        sourceType: 'preset',
+        recommendedFor: ['clash'],
+        compatibleClients: ['clash', 'mihomo', 'clash-meta'],
+        strategy: 'external-first',
+    };
+}
+
 /**
  * 订阅转换模板资产清单。
  *
@@ -15,12 +35,24 @@
  */
 export const TRANSFORM_ASSETS = {
     configs: [
+        acl4ssrPreset(101, 'cmOnlineDefault'),
+        acl4ssrPreset(102, 'cmOnlineMultiCountry', 'MultiCountry'),
+        acl4ssrPreset(103, 'cmOnlineMultiCountryCf', 'MultiCountry_CF'),
+        acl4ssrPreset(112, 'cmOnlineMultiCountryWarp', 'MultiCountry_WARP'),
+        acl4ssrPreset(104, 'cmOnlineFull', 'Full'),
+        acl4ssrPreset(105, 'cmOnlineFullCf', 'Full_CF'),
+        acl4ssrPreset(106, 'cmOnlineFullMultiMode', 'Full_MultiMode'),
+        acl4ssrPreset(107, 'cmOnlineFullMultiModeCf', 'Full_MultiMode_CF'),
+        acl4ssrPreset(108, 'cmOnlineFullMultiModeWarp', 'Full_MultiMode_WARP'),
+        acl4ssrPreset(109, 'cmOnlineMiniMultiCountry', 'Mini_MultiCountry'),
+        acl4ssrPreset(110, 'cmOnlineMiniMultiModeCf', 'Mini_MultiMode_CF'),
+        acl4ssrPreset(111, 'cmOnlineMiniNoAutoCf', 'Mini_NoAuto_CF'),
         {
             id: 0,
             nameKey: 'transformAssets.builtinMinimal.name',
             url: 'builtin:clash_misub_minimal',
             group: 'MiSub Builtin',
-            is_default: true,
+            is_default: false,
             sourceType: 'builtin-preset',
             recommendedFor: ['clash', 'singbox', 'surge', 'loon', 'quanx'],
             compatibleClients: [
@@ -86,90 +118,6 @@ export const TRANSFORM_ASSETS = {
             compatibleClients: ['clash', 'mihomo', 'clash-meta', 'singbox'],
             strategy: 'model-driven',
             descriptionKey: 'transformAssets.acl4ssrFull.description',
-        },
-        {
-            id: 101,
-            nameKey: 'transformAssets.cmOnlineDefault.name',
-            url: 'https://raw.githubusercontent.com/cmliu/ACL4SSR/main/Clash/config/ACL4SSR_Online.ini',
-            group: 'ACL4SSR',
-            is_default: true,
-            sourceType: 'preset',
-            recommendedFor: ['clash'],
-            compatibleClients: ['clash', 'mihomo', 'clash-meta'],
-            strategy: 'external-first',
-            descriptionKey: 'transformAssets.cmOnlineDefault.description',
-        },
-        {
-            id: 102,
-            nameKey: 'transformAssets.cmOnlineMultiCountry.name',
-            url: 'https://raw.githubusercontent.com/cmliu/ACL4SSR/main/Clash/config/ACL4SSR_Online_MultiCountry.ini',
-            group: 'ACL4SSR',
-            is_default: false,
-            sourceType: 'preset',
-            recommendedFor: ['clash'],
-            compatibleClients: ['clash', 'mihomo', 'clash-meta'],
-            strategy: 'external-first',
-            descriptionKey: 'transformAssets.cmOnlineMultiCountry.description',
-        },
-        {
-            id: 103,
-            nameKey: 'transformAssets.cmOnlineMultiCountryCf.name',
-            url: 'https://raw.githubusercontent.com/cmliu/ACL4SSR/main/Clash/config/ACL4SSR_Online_MultiCountry_CF.ini',
-            group: 'ACL4SSR',
-            is_default: false,
-            sourceType: 'preset',
-            recommendedFor: ['clash'],
-            compatibleClients: ['clash', 'mihomo', 'clash-meta'],
-            strategy: 'external-first',
-            descriptionKey: 'transformAssets.cmOnlineMultiCountryCf.description',
-        },
-        {
-            id: 104,
-            nameKey: 'transformAssets.cmOnlineFull.name',
-            url: 'https://raw.githubusercontent.com/cmliu/ACL4SSR/main/Clash/config/ACL4SSR_Online_Full.ini',
-            group: 'ACL4SSR',
-            is_default: false,
-            sourceType: 'preset',
-            recommendedFor: ['clash'],
-            compatibleClients: ['clash', 'mihomo', 'clash-meta'],
-            strategy: 'external-first',
-            descriptionKey: 'transformAssets.cmOnlineFull.description',
-        },
-        {
-            id: 105,
-            nameKey: 'transformAssets.cmOnlineFullCf.name',
-            url: 'https://raw.githubusercontent.com/cmliu/ACL4SSR/main/Clash/config/ACL4SSR_Online_Full_CF.ini',
-            group: 'ACL4SSR',
-            is_default: false,
-            sourceType: 'preset',
-            recommendedFor: ['clash'],
-            compatibleClients: ['clash', 'mihomo', 'clash-meta'],
-            strategy: 'external-first',
-            descriptionKey: 'transformAssets.cmOnlineFullCf.description',
-        },
-        {
-            id: 106,
-            nameKey: 'transformAssets.cmOnlineFullMultiMode.name',
-            url: 'https://raw.githubusercontent.com/cmliu/ACL4SSR/main/Clash/config/ACL4SSR_Online_Full_MultiMode.ini',
-            group: 'ACL4SSR',
-            is_default: false,
-            sourceType: 'preset',
-            recommendedFor: ['clash'],
-            compatibleClients: ['clash', 'mihomo', 'clash-meta'],
-            strategy: 'external-first',
-            descriptionKey: 'transformAssets.cmOnlineFullMultiMode.description',
-        },
-        {
-            id: 107,
-            nameKey: 'transformAssets.cmOnlineFullMultiModeCf.name',
-            url: 'https://raw.githubusercontent.com/cmliu/ACL4SSR/main/Clash/config/ACL4SSR_Online_Full_MultiMode_CF.ini',
-            group: 'ACL4SSR',
-            is_default: false,
-            sourceType: 'preset',
-            recommendedFor: ['clash'],
-            compatibleClients: ['clash', 'mihomo', 'clash-meta'],
-            strategy: 'external-first',
-            descriptionKey: 'transformAssets.cmOnlineFullMultiModeCf.description',
         },
     ],
 };

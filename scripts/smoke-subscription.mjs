@@ -51,9 +51,13 @@ export function validateClashConfig(config, mode) {
     assert(array(dns['nameserver-policy']?.['geosite:cn']).length > 0, 'Clash geosite:cn DNS policy is missing');
 
     assertNoLoopbackNodes(config.proxies, 'Clash');
-    const aiGroups = array(config['proxy-groups']).filter(group => String(group?.name || '').startsWith('🤖'));
-    assert(aiGroups.length > 0, 'Clash AI groups are missing');
-    assert(aiGroups.every(group => !array(group.proxies).includes('DIRECT')), 'Clash AI group allows DIRECT');
+    const targets = new Set(['DIRECT', 'REJECT', ...array(config['proxy-groups']).map(group => group.name), ...array(config.proxies).map(proxy => proxy.name)]);
+    const rules = array(config.rules);
+    assert(rules.some(rule => rule.startsWith('MATCH,') && targets.has(rule.slice(6))), 'Clash MATCH policy is missing');
+    for (const rule of rules.filter(rule => rule.startsWith('RULE-SET,'))) {
+        const [, provider, policy] = rule.split(',');
+        assert(config['rule-providers']?.[provider] && targets.has(policy), `Clash rule has an undefined provider or policy: ${rule}`);
+    }
     return true;
 }
 

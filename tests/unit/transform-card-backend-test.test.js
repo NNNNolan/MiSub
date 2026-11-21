@@ -57,6 +57,8 @@ describe('TransformCard third-party backend test button', () => {
         await engineButtons
             .find((button) => button.text().includes('External backend'))
             .trigger('click');
+        expect(settings.transformConfigMode).toBe('builtin');
+        expect(wrapper.text()).toContain('ACL4SSR_Online.ini');
         await wrapper
             .get('[data-testid="engine-change-notice"] button:nth-of-type(2)')
             .trigger('click');
@@ -97,8 +99,9 @@ describe('TransformCard third-party backend test button', () => {
             elapsedMs: 123,
         });
 
+        const settings = createSettings();
         const wrapper = mount(TransformCard, {
-            props: { settings: createSettings() },
+            props: { settings },
             global: {
                 stubs: {
                     TransformSelector: true,
@@ -109,6 +112,8 @@ describe('TransformCard third-party backend test button', () => {
 
         expect(wrapper.text()).toContain('Test backend availability');
         expect(wrapper.text()).toContain('Your real subscription links are not sent');
+        expect(wrapper.text()).toContain('Clash / Mihomo uses ACL4SSR_Online.ini from cmliu');
+        expect(settings.transformConfig).toBe('');
 
         await wrapper.get('[data-testid="test-subconverter-backend"]').trigger('click');
         await nextTick();

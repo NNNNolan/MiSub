@@ -68,6 +68,12 @@ function parseRuleLine(line) {
     };
 }
 
+function isUsableRoutingRule({ type, value, policy, source }) {
+    if (!type || !policy) return false;
+    if (source === 'remote') return /^https?:\/\/[^/\s]+/i.test(value);
+    return Boolean(value) || type === 'match' || type === 'final';
+}
+
 function parseAclRuleSetLine(line) {
     const raw = line.replace(/^ruleset=/i, '');
     const parts = raw.split(',').map((part) => part.trim());
@@ -201,6 +207,13 @@ export function parseIniTemplate(templateText, options = {}) {
         .map(parseRuleLine)
         .filter(Boolean)
         .concat(parsedAclRules);
+
+    if (
+        options.requireRules &&
+        (/^\s*</.test(templateText) || !rules.length || !rules.every(isUsableRoutingRule))
+    ) {
+        throw new Error('Invalid remote INI template: expected routing rules');
+    }
 
     return createUnifiedTemplateModel({
         meta: {

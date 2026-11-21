@@ -33,6 +33,7 @@ import {
     DEFAULT_SETTINGS as defaultSettings,
 } from './config.js';
 import { listRuleTemplates } from './rule-template-handler.js';
+import { mergeStoredSettings } from '../../src/constants/acl4ssr-configs.js';
 
 const PROFILE_DOWNLOAD_COUNT_PREFIX = 'misub_profile_download_count_';
 
@@ -213,11 +214,8 @@ export async function handleDataRequest(env, context = null) {
                     console.error('[Migration] Failed to persist migrated profile IDs:', err)
                 );
         }
-        const config = {
-            ...defaultSettings,
-            ...settings,
-            isDefaultPassword: await isUsingDefaultPassword(env),
-        };
+        const config = mergeStoredSettings(defaultSettings, settings);
+        config.isDefaultPassword = await isUsingDefaultPassword(env);
         try {
             const taskContext = context || { env };
             const runPromise = maybeRunScheduledTasks(taskContext, { source: 'admin-api' });
@@ -518,7 +516,8 @@ function redactSettingsForResponse(settings = {}) {
 export async function handleSettingsGet(env) {
     try {
         const settings = (await SettingsCache.get(env)) || {};
-        return createJsonResponse(redactSettingsForResponse({ ...defaultSettings, ...settings }));
+        const config = mergeStoredSettings(defaultSettings, settings);
+        return createJsonResponse(redactSettingsForResponse(config));
     } catch (e) {
         if (isStorageUnavailableError(e)) {
             return createJsonResponse({

@@ -4,6 +4,7 @@ import { useDataStore } from '../stores/useDataStore';
 import { useToastStore } from '../stores/toast';
 import { generateProfileId } from '../utils/id.js';
 import { t } from '../i18n/index.js';
+import { resolveStoredTransformMode } from '../constants/acl4ssr-configs.js';
 
 export function useProfiles(markDirty) {
     const { showToast } = useToastStore();
@@ -90,11 +91,11 @@ export function useProfiles(markDirty) {
         if (profile) {
             isNewProfile.value = false;
             editingProfile.value = JSON.parse(JSON.stringify(profile));
-            if (!editingProfile.value.transformConfigMode) {
-                editingProfile.value.transformConfigMode = editingProfile.value.transformConfig
-                    ? 'preset'
-                    : 'global';
-            }
+            editingProfile.value.transformConfigMode = resolveStoredTransformMode(
+                profile.transformConfigMode,
+                profile.transformConfig,
+                'global'
+            );
             if (!editingProfile.value.ruleLevel && editingProfile.value.clashRuleLevel) {
                 editingProfile.value.ruleLevel = editingProfile.value.clashRuleLevel;
             }

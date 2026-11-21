@@ -506,6 +506,9 @@ export function pinRemoteRuleUrl(sourceUrl, options = {}) {
         const url = new URL(raw);
         if (!/raw\.githubusercontent\.com$/i.test(url.hostname)) return raw;
         const parts = url.pathname.split('/').filter(Boolean);
+        if (parts[2] === 'refs' && (parts[3] === 'heads' || parts[3] === 'tags')) {
+            parts.splice(2, 2);
+        }
         if (parts.length < 4) return raw;
         const key = `${parts[0].toLowerCase()}/${parts[1].toLowerCase()}`;
         const revisions = {

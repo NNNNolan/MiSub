@@ -8,6 +8,7 @@ import {
 } from '../../src/constants/transform-assets.js';
 import { getBuiltinTemplate } from '../../functions/modules/subscription/builtin-template-registry.js';
 import { t } from '../../src/i18n/index.js';
+import { ACL4SSR_CONFIG_BASE } from '../../src/constants/acl4ssr-configs.js';
 
 describe('Transform assets', () => {
     it('should provide metadata for preset configs', () => {
@@ -67,6 +68,31 @@ describe('Transform assets', () => {
     it('should find preset by url', () => {
         const asset = getTransformAssetByUrl(TRANSFORM_ASSETS.configs[0].url);
         expect(asset?.id).toBe(TRANSFORM_ASSETS.configs[0].id);
+    });
+
+    it('lists every cmliu config as a raw INI URL with stable preset IDs', () => {
+        expect(ACL4SSR_CONFIG_BASE).toBe(
+            'https://raw.githubusercontent.com/cmliu/ACL4SSR/main/Clash/config/'
+        );
+        const presets = TRANSFORM_ASSETS.configs.filter((asset) => asset.sourceType === 'preset');
+        const filenames = [
+            'ACL4SSR_Online.ini',
+            'ACL4SSR_Online_MultiCountry.ini',
+            'ACL4SSR_Online_MultiCountry_CF.ini',
+            'ACL4SSR_Online_Full.ini',
+            'ACL4SSR_Online_Full_CF.ini',
+            'ACL4SSR_Online_Full_MultiMode.ini',
+            'ACL4SSR_Online_Full_MultiMode_CF.ini',
+            'ACL4SSR_Online_Full_MultiMode_WARP.ini',
+            'ACL4SSR_Online_Mini_MultiCountry.ini',
+            'ACL4SSR_Online_Mini_MultiMode_CF.ini',
+            'ACL4SSR_Online_Mini_NoAuto_CF.ini',
+            'ACL4SSR_Online_MultiCountry_WARP.ini',
+        ];
+        expect(presets).toHaveLength(filenames.length);
+        filenames.forEach((filename, index) => {
+            expect(getTransformAssetByUrl(ACL4SSR_CONFIG_BASE + filename)?.id).toBe(101 + index);
+        });
     });
 
     it('should include builtin lite preset', () => {

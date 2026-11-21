@@ -31,6 +31,11 @@ function cleanControlChars(str) {
     return str.replace(/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]/g, '');
 }
 
+export function withStashSubscriptionHeader(content, { userAgent, managedConfigUrl }) {
+    const url = String(managedConfigUrl || '').trim();
+    return url && /stash/i.test(userAgent) ? `#SUBSCRIBED ${url}\n${content}` : content;
+}
+
 /**
  * 递归清理对象中所有字符串的控制字符
  * @param {any} obj - 输入对象
@@ -145,8 +150,6 @@ export function generateBuiltinClashConfig(nodeList, options = {}) {
     const enableMihomoSyntax =
         Boolean(options.isMeta) || isMetaCore(userAgent, options.searchParams);
     const isHiddifyClient = hiddifyCompatible || /hiddify/i.test(userAgent || '');
-    // Stash 通过 #SUBSCRIBED <url> 注释行识别订阅地址以支持自动更新
-    const isStashClient = /stash/i.test(userAgent || '');
 
     // 解析节点 URL 列表（先清理控制字符）。
     const cleanedNodeList = cleanControlChars(nodeList);
@@ -241,7 +244,7 @@ export function generateBuiltinClashConfig(nodeList, options = {}) {
             rules: clashRules,
         };
 
-        let yamlStr = yaml.dump(config, {
+        const yamlStr = yaml.dump(config, {
             indent: 2,
             lineWidth: -1,
             noRefs: true,
@@ -249,13 +252,8 @@ export function generateBuiltinClashConfig(nodeList, options = {}) {
             forceQuotes: false,
         });
 
-        // Stash 首行输出 #SUBSCRIBED <订阅 URL> 以启用订阅自动更新
-        if (isStashClient && options.managedConfigUrl && String(options.managedConfigUrl).trim()) {
-            yamlStr = `#SUBSCRIBED ${options.managedConfigUrl}\n${yamlStr}`;
-        }
-
         // 最终清理，确保输出没有控制字符
-        return cleanControlChars(yamlStr);
+        return cleanControlChars(withStashSubscriptionHeader(yamlStr, options));
     } catch (e) {
         console.error('[BuiltinClash] Generation failed:', e);
         // Fallback: 至少返回包含节点的有效 YAML 结构，而不是传回会导致 Clash 报错的 Base64

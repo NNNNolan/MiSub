@@ -14,6 +14,9 @@ describe('Clash/sing-box subscription smoke invariants', () => {
             const singbox = JSON.parse(generateBuiltinSingboxConfig(NODE, options));
 
             expect(() => validateClashConfig(clash, mode)).not.toThrow();
+            const aiGroups = clash['proxy-groups'].filter((group) => group.name.startsWith('🤖'));
+            expect(aiGroups.length).toBeGreaterThan(0);
+            expect(aiGroups.every((group) => !group.proxies.includes('DIRECT'))).toBe(true);
             expect(() => validateSingboxConfig(singbox, mode)).not.toThrow();
         });
     }

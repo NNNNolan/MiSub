@@ -47,10 +47,10 @@ describe('Mihomo mrs rule providers', () => {
 
     it('emits ipcidr behavior for geoip sets', () => {
         const parsed = render([
-            'ruleset=🇨🇳 国内直连,https://cdn.jsdelivr.net/gh/MetaCubeX/meta-rules-dat@meta/geo/geoip/cn.mrs',
+            'ruleset=🇨🇳 国内直连,https://cdn.jsdelivr.net/gh/MetaCubeX/meta-rules-dat@meta/geo/geoip/cn.mrs?rev=1',
         ]);
 
-        const provider = providerFor(parsed, '/geo/geoip/cn.mrs');
+        const provider = providerFor(parsed, '/geo/geoip/cn.mrs?rev=1');
 
         expect(provider).toBeDefined();
         expect(provider.format).toBe('mrs');
@@ -70,10 +70,11 @@ describe('Mihomo mrs rule providers', () => {
         expect(provider.behavior).toBe('domain');
     });
 
-    it('leaves yaml and list providers unchanged', () => {
+    it('keeps explicit classical and CIDR YAML providers distinct from typed text lists', () => {
         const parsed = render([
             'ruleset=🇨🇳 国内直连,https://cdn.jsdelivr.net/gh/blackmatrix7/ios_rule_script@master/rule/Clash/ChinaMax/ChinaMax_Classical.yaml',
-            'ruleset=🛑 广告拦截,https://cdn.jsdelivr.net/gh/example/rules@main/rules/custom.list',
+            'ruleset=🇨🇳 国内直连,https://rules.example/Clash/Providers/ChinaCompanyIp.yaml?rev=1',
+            'ruleset=🛑 广告拦截,https://rules.example/ChinaCompanyIp.txt?file=copy.yaml',
         ]);
 
         const yamlProvider = providerFor(parsed, 'ChinaMax_Classical.yaml');
@@ -82,7 +83,11 @@ describe('Mihomo mrs rule providers', () => {
         expect(yamlProvider.format).toBeUndefined();
         expect(yamlProvider.path.endsWith('.yaml')).toBe(true);
 
-        const listProvider = providerFor(parsed, 'custom.list');
+        const cidrProvider = providerFor(parsed, 'ChinaCompanyIp.yaml?rev=1');
+        expect(cidrProvider).toMatchObject({ behavior: 'ipcidr' });
+        expect(cidrProvider.format).toBeUndefined();
+
+        const listProvider = providerFor(parsed, 'ChinaCompanyIp.txt?file=copy.yaml');
         expect(listProvider).toBeDefined();
         expect(listProvider.behavior).toBe('classical');
         expect(listProvider.format).toBe('text');

@@ -2,6 +2,7 @@
     import { computed, ref, watch } from 'vue';
     import { storeToRefs } from 'pinia';
     import { getLocalizedTransformAssets } from '@/constants/transform-assets';
+    import { ACL4SSR_CONFIG_BASE } from '@/constants/acl4ssr-configs.js';
     import { useDataStore } from '@/stores/useDataStore.js';
     import { useI18n } from '../../i18n/index.js';
 
@@ -238,6 +239,9 @@
         if (props.customTemplatesOnly) {
             return t('transformSelector.helperCustomTemplatesOnly');
         }
+        if (props.modelValue?.startsWith(ACL4SSR_CONFIG_BASE)) {
+            return t('transformSelector.helperAcl4ssr');
+        }
         if (props.excludeBuiltinAssets) {
             return t('transformSelector.helperExcludeBuiltin');
         }
@@ -247,13 +251,6 @@
 
 <template>
     <div>
-        <div
-            v-if="type === 'config' && excludeBuiltinAssets"
-            class="mb-3 rounded-lg border border-amber-300/60 bg-amber-50/90 px-3 py-2 text-xs text-amber-800 dark:border-amber-500/30 dark:bg-amber-900/20 dark:text-amber-200"
-        >
-            {{ t('transformSelector.thirdPartyNotice') }}
-        </div>
-
         <div v-if="!isCustom" class="relative">
             <select
                 :value="selectedUrl"

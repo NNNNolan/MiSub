@@ -1,6 +1,7 @@
 import { ref, computed, onUnmounted, getCurrentInstance } from 'vue';
 import { useToastStore } from '../stores/toast.js';
 import { DEFAULT_SETTINGS } from '../constants/default-settings.js';
+import { mergeStoredSettings } from '../constants/acl4ssr-configs.js';
 import { fetchSettings, saveSettings, resetSettings } from '../lib/api.js';
 import { useBackupLogic } from './useBackupLogic.js';
 import { t, setLocale } from '../i18n/index.js';
@@ -26,7 +27,7 @@ function normalizeExternalApiConfig(value) {
 }
 
 function normalizeSettingsObject(source = {}) {
-    const merged = { ...DEFAULT_SETTINGS, ...source };
+    const merged = mergeStoredSettings(DEFAULT_SETTINGS, source);
     merged.externalApi = normalizeExternalApiConfig(source.externalApi ?? merged.externalApi);
     return merged;
 }

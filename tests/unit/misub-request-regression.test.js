@@ -1,4 +1,14 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import yaml from 'js-yaml';
+import { DEFAULT_ACL4SSR_CONFIG_URL } from '../../src/constants/acl4ssr-configs.js';
+
+const ONLINE_INI = [
+    '[custom]',
+    'ruleset=🚀 节点选择,https://raw.githubusercontent.com/cmliu/ACL4SSR/refs/heads/main/Clash/PlayStore.list',
+    'ruleset=🐟 漏网之鱼,[]FINAL',
+    'custom_proxy_group=🚀 节点选择`select`.*',
+    'custom_proxy_group=🐟 漏网之鱼`select`[]🚀 节点选择`[]DIRECT',
+].join('\n');
 
 const createAdapter = vi.fn();
 const getStorageType = vi.fn();
@@ -140,6 +150,7 @@ describe('handleMisubRequest regression coverage', () => {
 
             expect(initialResponse.status).toBe(302);
             expect(redirectUrl.origin + redirectUrl.pathname).toBe('https://sub.example/sub');
+            expect(redirectUrl.searchParams.get('config')).toBe(DEFAULT_ACL4SSR_CONFIG_URL);
             expect(redirectUrl.searchParams.get('target')).toBe('clash');
             expect(dataSourceUrl.origin + dataSourceUrl.pathname).toBe(
                 'https://misub.example/stable-token'
@@ -300,7 +311,7 @@ describe('handleMisubRequest regression coverage', () => {
         }
     );
 
-    it('returns current fetch traffic header on the first builtin response', async () => {
+    it('renders the Online rules and preserves the first builtin response traffic header', async () => {
         const subscriptions = [
             {
                 id: 'sub-a',
@@ -317,16 +328,15 @@ describe('handleMisubRequest regression coverage', () => {
         createAdapter.mockReturnValue(adapter);
         vi.stubGlobal(
             'fetch',
-            vi.fn(
-                async () =>
-                    new Response('trojan://pass@example.com:443#HK', {
-                        status: 200,
-                        headers: {
-                            'subscription-userinfo':
-                                'upload=10; download=20; total=1000; expire=2000',
-                        },
-                    })
-            )
+            vi.fn(async (url) => {
+                if (url === DEFAULT_ACL4SSR_CONFIG_URL) return new Response(ONLINE_INI);
+                return new Response('trojan://pass@example.com:443#HK', {
+                    status: 200,
+                    headers: {
+                        'subscription-userinfo': 'upload=10; download=20; total=1000; expire=2000',
+                    },
+                });
+            })
         );
 
         const waitUntilPromises = [];
@@ -347,7 +357,14 @@ describe('handleMisubRequest regression coverage', () => {
             const text = await response.text();
 
             expect(response.status).toBe(200);
-            expect(text).toContain('proxies:');
+            const output = yaml.load(text);
+            expect(output.rules).toEqual(['RULE-SET,playstore_0,🚀 节点选择', 'MATCH,🐟 漏网之鱼']);
+            expect(output['rule-providers'].playstore_0).toMatchObject({
+                url: 'https://cdn.jsdelivr.net/gh/cmliu/ACL4SSR@main/Clash/PlayStore.list',
+                format: 'text',
+                behavior: 'classical',
+            });
+            expect(output.proxies).toHaveLength(1);
             expect(response.headers.get('Subscription-Userinfo')).toBe(
                 'upload=10; download=20; total=1000; expire=2000'
             );
@@ -357,6 +374,93 @@ describe('handleMisubRequest regression coverage', () => {
         } finally {
             logSpy.mockRestore();
         }
+    });
+
+    it.each([
+        ['?target=clash', 'Mihomo', 'https://example.com/profile.ini'],
+        ['?target=clash', 'Mihomo', undefined],
+    ])(
+        'does not return base64 for a failed rule template (%s, %s, %s)',
+        async (query, userAgent, globalUrl) => {
+            const adapter = createStorageAdapter({
+                settings: {
+                    profileToken: 'profiles',
+                    ...(globalUrl && { transformConfig: globalUrl }),
+                },
+                subscriptions: [
+                    { id: 'one', enabled: true, url: 'trojan://pass@example.com:443#HK' },
+                ],
+                profiles: [{ id: 'old', enabled: true, manualNodes: ['one'], subscriptions: [] }],
+            });
+            createAdapter.mockReturnValue(adapter);
+            vi.stubGlobal(
+                'fetch',
+                vi.fn(async () => new Response('not found', { status: 404 }))
+            );
+            const { handleMisubRequest } =
+                await import('../../functions/modules/subscription/main-handler.js');
+            const response = await handleMisubRequest({
+                request: new Request(`https://misub.example/profiles/old${query}`, {
+                    headers: { 'User-Agent': userAgent },
+                }),
+                env: {},
+                waitUntil: vi.fn(),
+            });
+            expect(fetch).toHaveBeenCalledWith(
+                globalUrl || DEFAULT_ACL4SSR_CONFIG_URL,
+                expect.anything()
+            );
+            expect(response.status).toBe(502);
+            expect(await response.text()).toContain('规则模板');
+        }
+    );
+
+    it.each([
+        ['target=nodes', 'Mihomo', 'trojan://'],
+        ['target=base64', 'v2rayN', 'base64'],
+        ['target=clash&list=true', 'Mihomo', 'list'],
+        ['target=clash', 'HiddifyNext', 'MATCH,🚀 节点选择'],
+        ['target=clash&level=relay', 'Mihomo', '🌍 总出口'],
+        ['target=singbox', 'sing-box', 'singbox'],
+    ])('does not fetch Clash INI for %s on %s', async (query, userAgent, expected) => {
+        createAdapter.mockReturnValue(
+            createStorageAdapter({
+                settings: {
+                    mytoken: 'demo',
+                    ...(expected === 'singbox' && {
+                        transformConfigMode: 'preset',
+                        transformConfig: DEFAULT_ACL4SSR_CONFIG_URL,
+                    }),
+                },
+                subscriptions: [
+                    { id: 'one', enabled: true, url: 'trojan://pass@example.com:443#HK' },
+                ],
+            })
+        );
+        vi.stubGlobal('fetch', vi.fn());
+        const { handleMisubRequest } =
+            await import('../../functions/modules/subscription/main-handler.js');
+        const response = await handleMisubRequest({
+            request: new Request(`https://misub.example/demo?${query}`, {
+                headers: { 'User-Agent': userAgent },
+            }),
+            env: {},
+            waitUntil: vi.fn(),
+        });
+        expect(response.status).toBe(200);
+        const body = await response.text();
+        if (expected === 'list')
+            expect(yaml.load(body)).toEqual([expect.objectContaining({ type: 'trojan' })]);
+        else if (expected === 'base64') expect(atob(body)).toContain('trojan://');
+        else if (expected === 'singbox') {
+            expect(
+                JSON.parse(body).route.rule_set.every((ruleSet) => !ruleSet.url.endsWith('.list'))
+            ).toBe(true);
+            expect(response.headers.get('X-MiSub-Template-Warning')).toBe(
+                'clash-rules-use-native-singbox'
+            );
+        } else expect(body).toContain(expected);
+        expect(fetch).not.toHaveBeenCalled();
     });
 
     it('uses the subscription group expiration time in the output traffic header', async () => {

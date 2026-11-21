@@ -688,252 +688,52 @@ custom_proxy_group=TestGroup`;
         expect(ssOutbound?.tls).toBeUndefined();
     });
 
-    it('should convert ACL4SSR list rules into clash yaml providers', () => {
-        const builtinTemplate = getBuiltinTemplate('clash_acl4ssr_lite');
-        const rendered = renderClashFromIniTemplate(builtinTemplate.content, {
-            nodeList: [
-                'trojan://password@1.2.3.4:443#HK-01',
-                'trojan://password@1.2.3.5:443#JP-01',
-                'trojan://password@1.2.3.6:443#US-01',
-            ].join('\n'),
-            targetFormat: 'clash',
-        });
-
-        const parsed = yaml.load(rendered);
-        const providers = parsed['rule-providers'] || {};
-        const providerUrls = Object.values(providers).map((provider) => provider.url);
-
-        expect(providerUrls.length).toBeGreaterThan(0);
-        expect(
-            providerUrls.some((url) =>
-                String(url).includes('/Clash/Providers/Ruleset/YouTube.yaml')
-            )
-        ).toBe(true);
-        expect(
-            providerUrls.some((url) => String(url).includes('/Clash/Providers/ProxyGFWlist.yaml'))
-        ).toBe(true);
-        expect(providerUrls.some((url) => String(url).includes('/Clash/BanAD.list'))).toBe(true);
-        expect(
-            Object.values(providers).some(
-                (provider) =>
-                    provider.url.includes('/Clash/BanAD.list') && provider.format === 'text'
-            )
-        ).toBe(true);
-    });
-
-    it('should map only ACL4SSR lists with existing provider YAML files to provider URLs', () => {
-        const rendered = renderClashFromIniTemplate(
-            `
-[custom]
-ruleset=📲 电报消息,https://raw.githubusercontent.com/ACL4SSR/ACL4SSR/master/Clash/Telegram.list
-ruleset=🚀 节点选择,https://raw.githubusercontent.com/ACL4SSR/ACL4SSR/master/Clash/ProxyGFWlist.list
-ruleset=🐟 漏网之鱼,[]FINAL
-custom_proxy_group=🚀 节点选择\`select\`[]DIRECT\`.*
-`,
-            {
-                nodeList: 'trojan://password@1.2.3.4:443#HK-01',
-                targetFormat: 'clash',
-            }
+    it('preserves the declared ACL4SSR lists, policies and first-match order', () => {
+        const upstream = 'https://raw.githubusercontent.com/ACL4SSR/ACL4SSR/master/Clash';
+        const mirror = `https://cdn.jsdelivr.net/gh/ACL4SSR/ACL4SSR@${PINNED_RULE_REVISIONS.ACL4SSR}/Clash`;
+        const template = [
+            '[custom]',
+            'custom_proxy_group=节点选择`select`[]DIRECT`(HK|港)',
+            `ruleset=节点选择,${upstream}/ProxyGFWlist.list`,
+            `ruleset=节点选择,${upstream}/Ruleset/YouTube.list`,
+            `ruleset=DIRECT,${upstream}/ChinaCompanyIp.list`,
+            'ruleset=节点选择,https://raw.githubusercontent.com/cmliu/ACL4SSR/refs/heads/main/Clash/ai.list',
+            `ruleset=REJECT,${upstream}/ProxyGFWlist.list`,
+            'ruleset=DIRECT,[]IP-CIDR,192.0.2.0/24,no-resolve',
+            'ruleset=DIRECT,[]GEOIP,CN,no-resolve',
+            'ruleset=节点选择,[]FINAL',
+        ].join('\n');
+        const config = yaml.load(
+            renderClashFromIniTemplate(template, {
+                nodeList: 'trojan://password@192.0.2.1:443#HK-01',
+                ruleLevel: 'none',
+            })
         );
 
-        const parsed = yaml.load(rendered);
-        const providerUrls = Object.values(parsed['rule-providers'] || {}).map(
-            (provider) => provider.url
-        );
-
-        expect(providerUrls).toContain(
-            `https://cdn.jsdelivr.net/gh/ACL4SSR/ACL4SSR@${PINNED_RULE_REVISIONS.ACL4SSR}/Clash/Providers/Ruleset/Telegram.yaml`
-        );
-        expect(providerUrls).toContain(
-            `https://cdn.jsdelivr.net/gh/ACL4SSR/ACL4SSR@${PINNED_RULE_REVISIONS.ACL4SSR}/Clash/Providers/ProxyGFWlist.yaml`
-        );
-    });
-
-    it('keeps ACL4SSR root list rules inline when provider YAML files are missing', () => {
-        const rendered = renderClashFromIniTemplate(
-            `
-[custom]
-ruleset=🎯 全球直连,https://raw.githubusercontent.com/ACL4SSR/ACL4SSR/master/Clash/LocalAreaNetwork.list
-ruleset=🛑 广告拦截,https://raw.githubusercontent.com/ACL4SSR/ACL4SSR/master/Clash/BanAD.list
-ruleset=🐟 漏网之鱼,[]FINAL
-custom_proxy_group=🚀 节点选择\`select\`[]DIRECT\`.*
-`,
-            {
-                nodeList: 'trojan://password@1.2.3.4:443#HK-01',
-                targetFormat: 'clash',
-            }
-        );
-
-        const parsed = yaml.load(rendered);
-        const providerUrls = Object.values(parsed['rule-providers'] || {}).map(
-            (provider) => provider.url
-        );
-
-        const localAreaProvider = Object.values(parsed['rule-providers'] || {}).find((provider) =>
-            provider.url.includes('/Clash/LocalAreaNetwork.list')
-        );
-        const banAdProvider = Object.values(parsed['rule-providers'] || {}).find((provider) =>
-            provider.url.includes('/Clash/BanAD.list')
-        );
-
-        expect(providerUrls).not.toContain(
-            `https://cdn.jsdelivr.net/gh/ACL4SSR/ACL4SSR@${PINNED_RULE_REVISIONS.ACL4SSR}/Clash/Providers/Ruleset/LocalAreaNetwork.yaml`
-        );
-        expect(providerUrls).not.toContain(
-            `https://cdn.jsdelivr.net/gh/ACL4SSR/ACL4SSR@${PINNED_RULE_REVISIONS.ACL4SSR}/Clash/Providers/Ruleset/BanAD.yaml`
-        );
-        expect(localAreaProvider).toMatchObject({
-            behavior: 'classical',
-            format: 'text',
-            path: './ruleset/localareanetwork_0.list',
-        });
-        expect(banAdProvider).toMatchObject({
-            behavior: 'classical',
-            format: 'text',
-            path: './ruleset/banad_1.list',
-        });
-        expect(parsed.rules).toContain('RULE-SET,localareanetwork_0,🎯 全球直连');
-        expect(parsed.rules).toContain('RULE-SET,banad_1,🛑 广告拦截');
-    });
-
-    it('maps ACL4SSR root IP lists to matching ipcidr provider YAML files', () => {
-        const rendered = renderClashFromIniTemplate(
-            `
-[custom]
-ruleset=🎯 全球直连,https://raw.githubusercontent.com/ACL4SSR/ACL4SSR/master/Clash/ChinaCompanyIp.list
-ruleset=🎯 全球直连,https://raw.githubusercontent.com/ACL4SSR/ACL4SSR/master/Clash/ChinaIp.list
-ruleset=🎯 全球直连,https://raw.githubusercontent.com/ACL4SSR/ACL4SSR/master/Clash/ChinaIpV6.list
-ruleset=🐟 漏网之鱼,[]FINAL
-custom_proxy_group=🚀 节点选择\`select\`[]DIRECT\`.*
-`,
-            {
-                nodeList: 'trojan://password@1.2.3.4:443#HK-01',
-                targetFormat: 'clash',
-            }
-        );
-
-        const parsed = yaml.load(rendered);
-        const providers = Object.values(parsed['rule-providers'] || {});
-        const providerUrls = providers.map((provider) => provider.url);
-
-        expect(providerUrls).toContain(
-            `https://cdn.jsdelivr.net/gh/ACL4SSR/ACL4SSR@${PINNED_RULE_REVISIONS.ACL4SSR}/Clash/Providers/ChinaCompanyIp.yaml`
-        );
-        expect(providerUrls).toContain(
-            `https://cdn.jsdelivr.net/gh/ACL4SSR/ACL4SSR@${PINNED_RULE_REVISIONS.ACL4SSR}/Clash/Providers/ChinaIp.yaml`
-        );
-        expect(providerUrls).toContain(
-            `https://cdn.jsdelivr.net/gh/ACL4SSR/ACL4SSR@${PINNED_RULE_REVISIONS.ACL4SSR}/Clash/Providers/ChinaIpV6.yaml`
-        );
-        expect(providerUrls).not.toContain(
-            `https://cdn.jsdelivr.net/gh/ACL4SSR/ACL4SSR@${PINNED_RULE_REVISIONS.ACL4SSR}/Clash/ChinaCompanyIp.list`
-        );
-
-        for (const provider of providers) {
-            expect(provider).toMatchObject({ behavior: 'ipcidr' });
-            expect(provider.path).toMatch(/\.yaml$/);
-            expect(provider.format).toBeUndefined();
+        expect(Object.values(config['rule-providers']).map((provider) => provider.url)).toEqual([
+            `${mirror}/ProxyGFWlist.list`,
+            `${mirror}/Ruleset/YouTube.list`,
+            `${mirror}/ChinaCompanyIp.list`,
+            'https://cdn.jsdelivr.net/gh/cmliu/ACL4SSR@main/Clash/ai.list',
+        ]);
+        for (const [name, provider] of Object.entries(config['rule-providers'])) {
+            expect(provider).toMatchObject({
+                behavior: 'classical',
+                format: 'text',
+                path: `./ruleset/${name}.list`,
+            });
         }
-    });
-
-    it('keeps ACL4SSR Download list as a text provider because YAML comments out most rules', () => {
-        const rendered = renderClashFromIniTemplate(
-            `
-[custom]
-ruleset=📥 下载服务,https://raw.githubusercontent.com/ACL4SSR/ACL4SSR/master/Clash/Download.list
-ruleset=🐟 漏网之鱼,[]FINAL
-custom_proxy_group=🚀 节点选择\`select\`[]DIRECT\`.*
-custom_proxy_group=📥 下载服务\`select\`[]🚀 节点选择\`[]DIRECT
-`,
-            {
-                nodeList: 'trojan://password@1.2.3.4:443#HK-01',
-                targetFormat: 'clash',
-            }
-        );
-
-        const parsed = yaml.load(rendered);
-        const providers = parsed['rule-providers'] || {};
-        const downloadProvider = Object.values(providers).find((provider) =>
-            provider.url.includes('/Clash/Download.list')
-        );
-
-        expect(Object.values(providers).map((provider) => provider.url)).not.toContain(
-            `https://cdn.jsdelivr.net/gh/ACL4SSR/ACL4SSR@${PINNED_RULE_REVISIONS.ACL4SSR}/Clash/Providers/Download.yaml`
-        );
-        expect(downloadProvider).toMatchObject({
-            behavior: 'classical',
-            format: 'text',
-            path: './ruleset/download_0.list',
-        });
-        expect(parsed.rules).toContain('RULE-SET,download_0,📥 下载服务');
-    });
-
-    it('keeps non-ACL4SSR raw GitHub rule URLs unchanged', () => {
-        const rendered = renderClashFromIniTemplate(
-            `
-[custom]
-ruleset=🎯 全球直连,https://raw.githubusercontent.com/szkane/ClashRuleSet/main/Clash/Apple.list
-ruleset=🎯 全球直连,https://raw.githubusercontent.com/szkane/ClashRuleSet/main/Clash/Microsoft.list
-ruleset=🐟 漏网之鱼,[]FINAL
-custom_proxy_group=🚀 节点选择\`select\`[]DIRECT\`.*
-`,
-            {
-                nodeList: 'trojan://password@1.2.3.4:443#HK-01',
-                targetFormat: 'clash',
-            }
-        );
-
-        const parsed = yaml.load(rendered);
-        const providerUrls = Object.values(parsed['rule-providers'] || {}).map(
-            (provider) => provider.url
-        );
-
-        expect(providerUrls).toContain(
-            'https://cdn.jsdelivr.net/gh/szkane/ClashRuleSet@main/Clash/Apple.list'
-        );
-        expect(providerUrls).toContain(
-            'https://cdn.jsdelivr.net/gh/szkane/ClashRuleSet@main/Clash/Microsoft.list'
-        );
-        expect(providerUrls).not.toContain(
-            'https://cdn.jsdelivr.net/gh/szkane/ClashRuleSet@main/Clash/Providers/Apple.yaml'
-        );
-        expect(providerUrls).not.toContain(
-            'https://cdn.jsdelivr.net/gh/szkane/ClashRuleSet@main/Clash/Providers/Ruleset/Microsoft.yaml'
-        );
-        expect(Object.values(parsed['rule-providers'] || {})).toEqual(
-            expect.arrayContaining([
-                expect.objectContaining({ format: 'text', path: './ruleset/apple_0.list' }),
-                expect.objectContaining({ format: 'text', path: './ruleset/microsoft_1.list' }),
-            ])
-        );
-    });
-
-    it('uses short ACL4SSR file names as rule-provider name hints instead of rs fallback names', () => {
-        const rendered = renderClashFromIniTemplate(
-            `
-[custom]
-ruleset=🤖 AI 服务,https://rules.example.test/AI.list
-ruleset=🐟 漏网之鱼,[]FINAL
-custom_proxy_group=🚀 节点选择\`select\`[]DIRECT\`.*
-custom_proxy_group=🤖 AI 服务\`select\`[]🚀 节点选择\`[]DIRECT
-`,
-            {
-                nodeList: 'trojan://password@1.2.3.4:443#HK-01',
-                targetFormat: 'clash',
-            }
-        );
-
-        const parsed = yaml.load(rendered);
-        const providers = parsed['rule-providers'] || {};
-
-        expect(Object.keys(providers)).toContain('ai_0');
-        expect(Object.keys(providers)).not.toContain('rs_0');
-        expect(providers.ai_0).toMatchObject({
-            behavior: 'classical',
-            format: 'text',
-            url: 'https://rules.example.test/AI.list',
-            path: './ruleset/ai_0.list',
-        });
-        expect(parsed.rules).toContain('RULE-SET,ai_0,🤖 AI 服务');
+        expect(config.rules).toEqual([
+            'RULE-SET,proxygfwlist_0,节点选择',
+            'RULE-SET,youtube_1,节点选择',
+            'RULE-SET,chinacompanyip_2,DIRECT',
+            'RULE-SET,ai_3,节点选择',
+            'RULE-SET,proxygfwlist_0,REJECT',
+            'IP-CIDR,192.0.2.0/24,DIRECT,no-resolve',
+            'GEOIP,CN,DIRECT,no-resolve',
+            'MATCH,节点选择',
+        ]);
+        expect(config['proxy-groups'][0].proxies).toEqual(['DIRECT', config.proxies[0].name]);
+        expect(config.proxies[0]).not.toHaveProperty('metadata');
     });
 });

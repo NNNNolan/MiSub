@@ -4,6 +4,7 @@
     import Switch from '@/components/ui/Switch.vue';
     import SectionHeader from '../../SectionHeader.vue';
     import RuleTemplateManager from './RuleTemplateManager.vue';
+    import { isAutomaticTransformConfig } from '@/constants/acl4ssr-configs.js';
     import {
         DEFAULT_SUBCONVERTER_BACKEND,
         SUBCONVERTER_BACKENDS,
@@ -26,8 +27,6 @@
         { value: 'custom', label: t('settings.transformCustomUrl') },
         { value: 'custom_template', label: t('settings.transformCustomTemplate') },
     ]);
-
-    const selectedAsset = ref(null);
 
     const flagOptions = computed(() => [
         { key: 'udp', label: t('settings.transformUdp'), icon: '⚡️' },
@@ -62,9 +61,15 @@
     }
 
     const isBuiltinMode = computed(() => props.settings.transformConfigMode === 'builtin');
+    const usesAutomaticRules = computed(() =>
+        isAutomaticTransformConfig(
+            props.settings.transformConfigMode,
+            props.settings.transformConfig
+        )
+    );
 
     const modeHint = computed(() => {
-        if (isBuiltinMode.value) {
+        if (usesAutomaticRules.value) {
             return t('settings.transformBuiltinHint');
         }
         if (props.settings.transformConfigMode === 'preset') {
@@ -84,7 +89,6 @@
     const isExternalEngine = computed(() => props.settings.subconverter.engineMode === 'external');
     const backendTestStatus = ref(null);
     const isTestingBackend = ref(false);
-    const previousEngineSettings = ref(null);
     const restoreEngineSnapshot = ref(null);
     const showEngineChangeWarning = ref(false);
     const engineChangeNoticeDismissed = ref(false);
@@ -128,15 +132,8 @@
         props.settings.subconverter.engineMode = 'builtin';
         if (!restoreEngineSnapshot.value) return;
         Object.assign(props.settings, restoreEngineSnapshot.value);
-        props.settings.subconverter.engineMode = 'builtin';
-        selectedAsset.value = null;
         showEngineChangeWarning.value = false;
-        previousEngineSettings.value = null;
         restoreEngineSnapshot.value = null;
-    }
-
-    function restorePreviousEngineSettings() {
-        switchToBuiltinEngine();
     }
 
     watch(
@@ -151,12 +148,6 @@
         (enabled, wasEnabled) => {
             if (enabled === wasEnabled) return;
             if (enabled) {
-                previousEngineSettings.value = {
-                    builtinSkipCertVerify: props.settings.builtinSkipCertVerify,
-                    builtinEnableUdp: props.settings.builtinEnableUdp,
-                    transformConfigMode: props.settings.transformConfigMode,
-                    transformConfig: props.settings.transformConfig,
-                };
                 restoreEngineSnapshot.value = {
                     builtinSkipCertVerify: props.settings.builtinSkipCertVerify,
                     builtinEnableUdp: props.settings.builtinEnableUdp,
@@ -165,15 +156,14 @@
                 };
                 props.settings.builtinSkipCertVerify = false;
                 props.settings.builtinEnableUdp = false;
-                if (
-                    props.settings.transformConfigMode === 'builtin' ||
-                    props.settings.transformConfigMode === 'custom_template'
-                ) {
+                if (props.settings.transformConfigMode === 'custom_template') {
                     props.settings.transformConfigMode = 'preset';
                 }
-                if (/^(builtin|custom):/.test(String(props.settings.transformConfig || ''))) {
+                if (
+                    !isBuiltinMode.value &&
+                    /^(builtin|custom):/.test(props.settings.transformConfig)
+                ) {
                     props.settings.transformConfig = '';
-                    selectedAsset.value = null;
                 }
                 showEngineChangeWarning.value = !engineChangeNoticeDismissed.value;
             }
@@ -267,7 +257,7 @@
                 type="button"
                 class="shrink-0 rounded-md border border-amber-300 px-3 py-1.5 text-xs font-semibold hover:bg-amber-100 dark:border-amber-400/30 dark:hover:bg-amber-500/10"
                 @click="
-                    restorePreviousEngineSettings();
+                    switchToBuiltinEngine();
                     engineChangeNoticeDismissed = true;
                 "
             >
@@ -317,11 +307,7 @@
                                 v-for="option in modeOptions"
                                 :key="option.value"
                                 :value="option.value"
-                                :disabled="
-                                    (option.value === 'builtin' ||
-                                        option.value === 'custom_template') &&
-                                    isExternalEngine
-                                "
+                                :disabled="option.value === 'custom_template' && isExternalEngine"
                             >
                                 {{ option.label }}
                             </option>
@@ -364,7 +350,7 @@
 
                         <div class="space-y-4">
                             <div
-                                :class="{ 'opacity-60': !isBuiltinMode }"
+                                :class="{ 'opacity-60': !usesAutomaticRules }"
                                 class="transition-opacity"
                             >
                                 <label class="mb-1.5 block text-[11px] font-medium text-gray-500">{{
@@ -372,7 +358,7 @@
                                 }}</label>
                                 <select
                                     v-model="settings.ruleLevel"
-                                    :disabled="!isBuiltinMode || isExternalEngine"
+                                    :disabled="!usesAutomaticRules || isExternalEngine"
                                     class="block w-full rounded-lg border border-gray-200 bg-white px-3 py-2 text-xs text-gray-900 focus:border-indigo-500 focus-visible:ring-indigo-500 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-100"
                                 >
                                     <option value="base">
@@ -414,10 +400,7 @@
                     </div>
                 </div>
 
-                <div
-                    :class="{ 'opacity-50 pointer-events-none': isBuiltinMode }"
-                    class="transition-all"
-                >
+                <div v-if="!isBuiltinMode">
                     <label
                         class="mb-1.5 block text-xs font-medium uppercase tracking-wider text-purple-600 dark:text-purple-400"
                     >
@@ -425,13 +408,16 @@
                     </label>
                     <TransformSelector
                         v-model="settings.transformConfig"
-                        @select-asset="selectedAsset = $event"
                         type="config"
                         :force-custom="settings.transformConfigMode === 'custom'"
                         :custom-templates-only="settings.transformConfigMode === 'custom_template'"
-                        :placeholder="t('settings.transformPresetPlaceholder')"
+                        :placeholder="
+                            settings.transformConfigMode === 'preset'
+                                ? t('settings.transformBuiltinAuto')
+                                : t('settings.transformPresetPlaceholder')
+                        "
                         :custom-placeholder="t('settings.transformRemotePlaceholder')"
-                        :allowEmpty="settings.transformConfigMode === 'builtin'"
+                        :allow-empty="settings.transformConfigMode === 'preset'"
                         :exclude-builtin-assets="isExternalEngine"
                     />
                     <p

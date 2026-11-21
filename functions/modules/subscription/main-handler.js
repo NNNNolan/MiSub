@@ -1,4 +1,12 @@
 import { StorageFactory } from '../../storage-adapter.js';
+import yaml from 'js-yaml';
+import {
+    ACL4SSR_CONFIG_BASE,
+    DEFAULT_ACL4SSR_CONFIG_URL,
+    isAutomaticTransformConfig,
+    mergeStoredSettings,
+    resolveStoredTransformMode,
+} from '../../../src/constants/acl4ssr-configs.js';
 import {
     migrateConfigSettings,
     formatBytes,
@@ -32,24 +40,7 @@ import {
     isHiddifyAgent,
 } from './user-agent-utils.js'; // [Added] Import centralized util
 import { authMiddleware } from '../auth-middleware.js';
-import { transformBuiltinSubscription } from './transformer-factory.js';
-import { fetchTransformTemplate } from './transform-template-cache.js';
-import {
-    buildTransformTemplateContext,
-    renderTransformTemplate,
-} from './transform-template-renderer.js';
-import { groupNodeLinesByRegion } from './region-groups.js';
-import { groupNodeLinesByProtocol } from './protocol-groups.js';
-import { shouldApplyExternalTemplateForTarget } from './template-compatibility.js';
-import {
-    renderClashFromIniTemplate,
-    renderLoonFromIniTemplate,
-    renderQuanxFromIniTemplate,
-    renderSingboxFromIniTemplate,
-    renderSurgeFromIniTemplate,
-} from './template-pipeline.js';
 import { handleProfileMode } from './profile-handler.js';
-import { getBuiltinTemplate } from './builtin-template-registry.js';
 import { assertPublicNetworkUrl } from '../security-utils.js';
 
 function maskSensitiveLogValue(value) {
@@ -65,20 +56,12 @@ function getProfileDownloadCountKey(profile) {
     return `${PROFILE_DOWNLOAD_COUNT_PREFIX}${profile.customId || profile.id}`;
 }
 
-function buildTemplateProxyBlock(nodeList) {
-    return nodeList
-        .split('\n')
-        .map((line) => line.trim())
-        .filter((line) => line && !line.startsWith('#'))
-        .join('\n');
-}
-
 export function extractProxySectionFromBuiltin(content, targetFormat) {
     if (typeof content !== 'string' || content.trim() === '') return '';
 
     if (targetFormat === 'clash') {
-        const match = content.match(/proxies:\s*\n([\s\S]*?)\n\nproxy-groups:/i);
-        return match ? match[1].trim() : '';
+        const proxies = yaml.load(content)?.proxies;
+        return Array.isArray(proxies) ? yaml.dump(proxies, { lineWidth: -1 }).trimEnd() : '';
     }
 
     if (targetFormat.startsWith('surge') || targetFormat === 'loon') {
@@ -271,18 +254,19 @@ function countSubscriptionNodes(nodeList, prependedContent = '') {
     return lines.length;
 }
 
-export function resolveTemplateUrl(mode, value, fallbackUrl = '') {
-    const normalizedMode = typeof mode === 'string' ? mode.trim().toLowerCase() : '';
+export function resolveTemplateUrl(
+    mode,
+    value,
+    { automaticUrl = '', inheritedUrl = automaticUrl } = {}
+) {
     const normalizedValue = typeof value === 'string' ? value.trim() : '';
-    const normalizedFallback = typeof fallbackUrl === 'string' ? fallbackUrl.trim() : '';
+    const normalizedMode = resolveStoredTransformMode(mode, normalizedValue, 'global');
 
-    if (normalizedMode === 'builtin') return '';
-    if (normalizedMode === 'global') return normalizedFallback;
+    if (normalizedMode === 'global') return inheritedUrl;
+    if (isAutomaticTransformConfig(normalizedMode, normalizedValue)) return automaticUrl;
     if (normalizedMode === 'custom_template') {
         return normalizedValue.startsWith('custom:') ? normalizedValue : '';
     }
-    if (normalizedMode === 'preset' || normalizedMode === 'custom') return normalizedValue;
-
     return normalizedValue;
 }
 
@@ -295,23 +279,26 @@ export function resolveTemplateSource(value) {
     if (normalizedValue.startsWith('custom:')) {
         return { kind: 'custom', value: normalizedValue.slice('custom:'.length) };
     }
-    return { kind: 'remote', value: normalizedValue };
+    return { kind: 'remote', value: normalizeGithubTemplateUrl(normalizedValue) };
 }
 
 export function resolveExternalTemplateConfigUrl(templateSource) {
     if (!templateSource || typeof templateSource !== 'object') return '';
     if (templateSource.kind !== 'remote') return '';
-    return normalizeExternalTemplateConfigUrl(String(templateSource.value || '').trim());
+    return templateSource.value;
 }
 
-export function normalizeExternalTemplateConfigUrl(input) {
-    const raw = typeof input === 'string' ? input.trim() : '';
-    if (!raw) return '';
-
+function normalizeGithubTemplateUrl(raw) {
     try {
         const parsed = new URL(raw);
-        if (parsed.hostname.toLowerCase() !== 'github.com') {
-            return raw;
+        if (parsed.username || parsed.password || parsed.protocol !== 'https:') return raw;
+        if (parsed.origin === 'https://raw.githubusercontent.com') {
+            parsed.pathname = parsed.pathname.replace(/^(\/[^/]+\/[^/]+)\/refs\/heads\//, '$1/');
+            return parsed.toString();
+        }
+        if (parsed.origin !== 'https://github.com') return raw;
+        if (parsed.pathname.replace(/\/$/, '') === '/cmliu/ACL4SSR/tree/main/Clash/config') {
+            return DEFAULT_ACL4SSR_CONFIG_URL;
         }
 
         const parts = parsed.pathname.split('/').filter(Boolean);
@@ -320,16 +307,11 @@ export function normalizeExternalTemplateConfigUrl(input) {
             return raw;
         }
 
-        const [owner, repo, , branch, ...fileParts] = parts;
-        if (!owner || !repo || !branch || fileParts.length === 0) {
-            return raw;
-        }
-
-        const rawUrl = new URL(
-            `https://raw.githubusercontent.com/${owner}/${repo}/${branch}/${fileParts.join('/')}`
-        );
-        rawUrl.search = parsed.search;
-        return rawUrl.toString();
+        const [owner, repo, , ...filePath] = parts;
+        parsed.hostname = 'raw.githubusercontent.com';
+        parsed.pathname = `/${owner}/${repo}/${filePath.join('/').replace(/^refs\/heads\//, '')}`;
+        parsed.hash = '';
+        return parsed.toString();
     } catch {
         return raw;
     }
@@ -614,7 +596,7 @@ export async function handleMisubRequest(context) {
             );
     }
     // 关键：我们在这里定义了 `config`，后续都应该使用它
-    const config = migrateConfigSettings({ ...defaultSettings, ...settings });
+    const config = migrateConfigSettings(mergeStoredSettings(defaultSettings, settings));
     context.config = config;
     context.accessLogPersistenceMode = config.accessLogPersistenceMode || 'light';
 
@@ -860,7 +842,7 @@ export async function handleMisubRequest(context) {
     }
 
     // 使用统一的确定目标格式的方法（此方法中包含了处理各类客户端如 Surge 等对应版本的最新支持规则）
-    let targetFormat = determineTargetFormat(userAgentHeader, url.searchParams);
+    const targetFormat = determineTargetFormat(userAgentHeader, url.searchParams);
 
     // [Access Log] Record access log and stats if enabled
     if (!url.searchParams.has('callback_token') && !shouldSkipLogging && config.enableAccessLog) {
@@ -916,19 +898,34 @@ export async function handleMisubRequest(context) {
     const profileSub = currentProfile?.subconverter || {};
     const globalSub = config.subconverter || {};
 
-    const globalTemplateUrl = resolveTemplateUrl(
-        config.transformConfigMode,
-        config.transformConfig,
-        ''
+    const requestedLevel = url.searchParams.get('level') || url.searchParams.get('ruleLevel');
+    const automaticUrl =
+        targetFormat === 'clash' &&
+        !isHiddifyAgent(userAgentHeader) &&
+        !(useBuiltin && requestedLevel)
+            ? DEFAULT_ACL4SSR_CONFIG_URL
+            : '';
+    const inheritedUrl = resolveTemplateUrl(config.transformConfigMode, config.transformConfig, {
+        automaticUrl,
+    });
+    const templateUrl = resolveTemplateUrl(
+        currentProfile?.transformConfigMode,
+        currentProfile?.transformConfig,
+        {
+            automaticUrl,
+            inheritedUrl,
+        }
     );
-    const templateUrl = currentProfile
-        ? resolveTemplateUrl(
-              currentProfile.transformConfigMode,
-              currentProfile.transformConfig,
-              globalTemplateUrl
-          )
-        : globalTemplateUrl;
-    const templateSource = resolveTemplateSource(templateUrl);
+    const selectedTemplate = resolveTemplateSource(templateUrl);
+    const useNativeSingboxRules =
+        useBuiltin &&
+        targetFormat === 'singbox' &&
+        selectedTemplate.kind === 'remote' &&
+        selectedTemplate.value.startsWith(ACL4SSR_CONFIG_BASE);
+    const templateSource =
+        useNativeSingboxRules || (urlList && targetFormat === 'clash')
+            ? resolveTemplateSource('')
+            : selectedTemplate;
 
     // [逻辑统一] 规则等级：URL 参数 > 订阅组设置 > 全局设置 > 默认值 (std)
     // [重要变更] 如果使用了远程自定义配置 (templateSource.kind === 'remote')，则完全禁用内置等级 (强制为 none)
@@ -939,11 +936,7 @@ export async function handleMisubRequest(context) {
     if (templateSource.kind === 'remote' || templateSource.kind === 'custom') {
         ruleLevel = 'none';
     } else {
-        ruleLevel =
-            url.searchParams.get('level') ||
-            url.searchParams.get('ruleLevel') ||
-            resolvedProfileLevel ||
-            resolvedGlobalLevel;
+        ruleLevel = requestedLevel || resolvedProfileLevel || resolvedGlobalLevel;
     }
 
     // === 缓存机制：快速响应客户端请求 ===
@@ -1462,8 +1455,6 @@ export async function handleMisubRequest(context) {
                 }
             }
 
-            const isJson = targetFormat === 'singbox' || targetFormat === 'sing-box';
-
             // [RFC 6266 / RFC 5987] Standardized Content-Disposition
             // filename: ASCII-only fallback, filename*: UTF-8 encoded
             const asciiSubName = subName.replace(/[^\x20-\x7E]/g, '_').replace(/"/g, '\\"');
@@ -1486,6 +1477,9 @@ export async function handleMisubRequest(context) {
             }
 
             Object.entries(resultHeaders).forEach(([k, v]) => responseHeaders.set(k, v));
+            if (useNativeSingboxRules) {
+                responseHeaders.set('X-MiSub-Template-Warning', 'clash-rules-use-native-singbox');
+            }
             Object.entries(cacheHeaders).forEach(([key, value]) => responseHeaders.set(key, value));
 
             if (!url.searchParams.has('callback_token') && !shouldSkipLogging) {
@@ -1521,6 +1515,19 @@ export async function handleMisubRequest(context) {
             return new Response(finalContent || '', { headers: responseHeaders });
         } catch (e) {
             console.error(`[Builtin${targetFormat}] Generation failed:`, e);
+            const isRemoteTemplate = templateSource.kind === 'remote';
+            return new Response(
+                isRemoteTemplate
+                    ? '无法加载或转换远程规则模板，请检查模板地址和内容。'
+                    : '订阅转换失败。',
+                {
+                    status: isRemoteTemplate ? 502 : 500,
+                    headers: {
+                        'Content-Type': 'text/plain; charset=utf-8',
+                        'Cache-Control': 'no-store',
+                    },
+                }
+            );
         }
     }
 

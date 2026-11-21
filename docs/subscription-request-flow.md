@@ -152,6 +152,10 @@ profile 模式下，如果访问日志开启且不是 `callback_token`/内部请
     - `custom:*`
     - remote URL
 
+自动来源（含历史的空 `preset`）对 Clash/Mihomo 完整订阅默认使用 [cmliu/ACL4SSR Online](https://github.com/cmliu/ACL4SSR/blob/main/Clash/config/ACL4SSR_Online.ini)。旧订阅组没有模式也没有模板时继承全局；已指定模板的订阅组优先。两种转换引擎都使用所选 INI 的 raw URL；内置引擎保留 `.list` 文件，不用同名 YAML 替换原规则。
+
+自动模式下，内置引擎收到显式 `level` / `ruleLevel` 时使用原生规则。Hiddify 兼容输出、其他目标格式和纯节点导出不使用默认 Clash 模板。显式选择该目录的预设时，本地 Sing-box 仍用原生规则，并返回 `X-MiSub-Template-Warning: clash-rules-use-native-singbox`：Clash 文本规则集不能当作 Sing-box JSON 读取。
+
 规则等级 `ruleLevel`：
 
 - URL `level` 或 `ruleLevel` 优先。
@@ -338,8 +342,8 @@ HTTP 订阅源定义为 URL 以 `http` 开头的订阅项。
 当 `effectiveEngine === 'external'` 且目标格式不是 `base64`：
 
 1. 使用 `buildExternalSubconverterUrl()` 构造第三方后端 URL。
-2. 将 MiSub 已预处理后的节点列表作为内联 `url` 参数传给 subconverter。
-3. 节点用 `|` 拼接，避免部分后端只解析首行或报 No nodes found。
+2. 将当前订阅的 Base64 数据源链接作为 `url` 传给 subconverter。
+3. 第三方后端请求该链接取得 MiSub 已预处理的节点；此回调不加载分流模板。
 4. 透传/设置：
     - `target`
     - `meta`
@@ -389,7 +393,7 @@ HTTP 订阅源定义为 URL 以 `http` 开头的订阅项。
     - `ruleLevel`。
     - 是否 Meta 核心。
 2. 调用 `ProcessorService.renderOutput()`。
-3. 先用 `transformBuiltinSubscription()` 生成基础格式内容。
+3. 没有适用的模板时使用目标格式的原生生成器。
 4. 如配置模板且不是 Hiddify 兼容模式：
     - builtin 模板从注册表读取。
     - custom 模板从规则模板存储读取。
@@ -404,7 +408,7 @@ HTTP 订阅源定义为 URL 以 `http` 开头的订阅项。
     - 聚合缓存头。
     - 如有流量信息，附加 `Subscription-Userinfo` 与 `Profile-Update-Interval`。
 
-如果内置转换失败，会回退到 base64 输出。
+未支持的目标格式仍可回退为 Base64。已支持的格式若远程模板加载或转换失败且无可用缓存，返回 HTTP 502；本地生成异常返回 HTTP 500，不用 Base64 冒充成功的配置。
 
 ## 13. 通知与访问日志
 

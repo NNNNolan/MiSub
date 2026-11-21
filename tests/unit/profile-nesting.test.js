@@ -317,7 +317,7 @@ describe('Profile Nesting - Full Subscription Request via handleMisubRequest', (
             },
         };
 
-        const req = new Request('https://example.com/profiles/top-composite', {
+        const req = new Request('https://example.com/profiles/top-composite?level=std', {
             headers: {
                 'User-Agent': 'ClashMeta/1.18.0',
             },

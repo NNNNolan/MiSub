@@ -281,9 +281,13 @@ wrangler d1 execute misub --file=schema.sql --remote
 
 MiSub 默认使用内置转换器将订阅内容转换为目标格式，并支持按需接入第三方转换后端。
 
+规则来源选「自动」时，Clash / Mihomo 默认使用 [cmliu/ACL4SSR 的 `ACL4SSR_Online.ini`](https://github.com/cmliu/ACL4SSR/tree/main/Clash/config)。需要 Full、Mini、CF 或 WARP 版本，可在**设置 → 订阅转换 → 规则来源**选预设；订阅组默认跟随全局，也可以单独指定。已有自定义模板不用重设，无需数据库迁移。
+
+内置转换保留模板的策略、规则顺序和 `.list` 文件，使用 `classical` / `text` 规则集。旧版 Clash 内核不支持文本规则集时，可用第三方转换，或在自动模式的订阅链接上加 `level=std` 使用 MiSub 原生规则。Hiddify、Sing-box 等客户端在自动模式下沿用原生配置，纯节点订阅不加载分流规则。
+
 处理顺序统一为：机场订阅 / 手动节点 → MiSub 节点预处理（拉取、解析、过滤、重命名、去重、排序等）→ 内置模板输出或第三方后端转换。
 
-当启用第三方转换后端时，MiSub 会把预处理后的节点以内联方式交给外部后端，避免外部后端再次回调 MiSub 节点链接造成 `No nodes were found!` 等抓取失败。多节点会使用 `|` 分隔，以兼容常见 subconverter / FatSheep 后端。
+只有启用第三方转换时，MiSub 才会将订阅数据源链接和所选远程模板的 `config` URL 交给该后端；请只使用可信的转换服务。
 
 支持的目标格式：
 

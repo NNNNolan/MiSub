@@ -1,4 +1,5 @@
 import { describe, it, expect } from 'vitest';
+import { DEFAULT_ACL4SSR_CONFIG_URL } from '../../src/constants/acl4ssr-configs.js';
 import {
     buildExternalSubconverterUrl,
     buildManagedConfigUrl,
@@ -70,43 +71,22 @@ describe('Main handler template url', () => {
     });
 
     it('should resolve template sources by mode', () => {
-        expect(
-            resolveTemplateUrl(
-                'builtin',
-                'https://example.com/a.yaml',
-                'https://example.com/fallback.yaml'
-            )
-        ).toBe('');
-        expect(resolveTemplateUrl('global', '', 'https://example.com/fallback.yaml')).toBe(
-            'https://example.com/fallback.yaml'
+        const inheritedUrl = 'https://example.com/selected.ini';
+        const options = { automaticUrl: DEFAULT_ACL4SSR_CONFIG_URL, inheritedUrl };
+        expect(resolveTemplateUrl('builtin', 'ignored', options)).toBe(DEFAULT_ACL4SSR_CONFIG_URL);
+        expect(resolveTemplateUrl('preset', '', options)).toBe(DEFAULT_ACL4SSR_CONFIG_URL);
+        expect(resolveTemplateUrl('global', 'ignored', options)).toBe(inheritedUrl);
+        expect(resolveTemplateUrl(undefined, '', options)).toBe(inheritedUrl);
+        expect(resolveTemplateUrl(undefined, 'custom:legacy', options)).toBe('custom:legacy');
+        expect(resolveTemplateUrl('preset', 'builtin:clash_acl4ssr_full', options)).toBe(
+            'builtin:clash_acl4ssr_full'
         );
+        expect(resolveTemplateUrl('custom', 'https://example.com/custom.yaml', options)).toBe(
+            'https://example.com/custom.yaml'
+        );
+        expect(resolveTemplateUrl('custom_template', 'custom:tpl-a', options)).toBe('custom:tpl-a');
         expect(
-            resolveTemplateUrl(
-                'preset',
-                'https://example.com/preset.yaml',
-                'https://example.com/fallback.yaml'
-            )
-        ).toBe('https://example.com/preset.yaml');
-        expect(
-            resolveTemplateUrl(
-                'custom',
-                'https://example.com/custom.yaml',
-                'https://example.com/fallback.yaml'
-            )
-        ).toBe('https://example.com/custom.yaml');
-        expect(
-            resolveTemplateUrl(
-                'custom_template',
-                'custom:tpl-a',
-                'https://example.com/fallback.yaml'
-            )
-        ).toBe('custom:tpl-a');
-        expect(
-            resolveTemplateUrl(
-                'custom_template',
-                'https://example.com/not-local.ini',
-                'https://example.com/fallback.yaml'
-            )
+            resolveTemplateUrl('custom_template', 'https://example.com/not-local.ini', options)
         ).toBe('');
         expect(resolveTemplateSource('builtin:clash_acl4ssr_full')).toEqual({
             kind: 'builtin',
@@ -122,6 +102,31 @@ describe('Main handler template url', () => {
                 resolveTemplateSource('https://example.com/preset.yaml')
             )
         ).toBe('https://example.com/preset.yaml');
+    });
+
+    it('resolves the cmliu directory and GitHub file links before either engine sees them', () => {
+        expect(
+            resolveTemplateSource('https://github.com/cmliu/ACL4SSR/tree/main/Clash/config/')
+        ).toEqual({
+            kind: 'remote',
+            value: DEFAULT_ACL4SSR_CONFIG_URL,
+        });
+        expect(
+            resolveTemplateSource(
+                'https://github.com/cmliu/ACL4SSR/blob/main/Clash/config/ACL4SSR_Online_Full.ini'
+            ).value
+        ).toBe(
+            'https://raw.githubusercontent.com/cmliu/ACL4SSR/main/Clash/config/ACL4SSR_Online_Full.ini'
+        );
+        for (const base of [
+            'https://raw.githubusercontent.com/cmliu/ACL4SSR',
+            'https://github.com/cmliu/ACL4SSR/raw',
+        ]) {
+            expect(
+                resolveTemplateSource(`${base}/refs/heads/main/Clash/config/ACL4SSR_Online.ini`)
+                    .value
+            ).toBe(DEFAULT_ACL4SSR_CONFIG_URL);
+        }
     });
 
     it('should apply external templates only to compatible targets', () => {

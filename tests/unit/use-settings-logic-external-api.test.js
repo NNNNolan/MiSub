@@ -50,6 +50,30 @@ describe('useSettingsLogic externalApi normalization', () => {
         expect(settings.value.externalApi.tokens).toEqual([{ name: 'default', token: '' }]);
     });
 
+    it('preserves a legacy rule URL without a mode through an unrelated settings edit', async () => {
+        const transformConfig = 'https://example.com/legacy.ini';
+        fetchSettings.mockResolvedValue({ success: true, data: { transformConfig } });
+        saveSettings.mockResolvedValue({ success: true });
+        vi.useFakeTimers();
+        try {
+            const { settings, loadSettings, handleSave } = useSettingsLogic();
+            await loadSettings();
+            expect(settings.value.transformConfigMode).toBe('preset');
+            settings.value.FileName = 'Edited';
+            expect(await handleSave()).toBe(true);
+            expect(saveSettings).toHaveBeenCalledWith(
+                expect.objectContaining({
+                    FileName: 'Edited',
+                    transformConfig,
+                    transformConfigMode: 'preset',
+                })
+            );
+        } finally {
+            vi.clearAllTimers();
+            vi.useRealTimers();
+        }
+    });
+
     it('shows a visible reload countdown and reloads automatically after saving', async () => {
         vi.useFakeTimers();
         saveSettings.mockResolvedValue({ success: true });
