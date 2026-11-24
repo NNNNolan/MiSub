@@ -10,6 +10,7 @@
  * 5. 完善的 [General] 与 [Rule] 规则
  */
 
+import { DEFAULT_LATENCY_TEST_URL } from '../../../src/constants/latency-test-url.js';
 import { urlToClashProxy, urlsToClashProxies } from '../../utils/url-to-clash.js';
 import { getUniqueName } from './name-utils.js';
 import {
@@ -339,7 +340,7 @@ export function generateBuiltinLoonConfig(nodeList, options = {}) {
 ipv6 = false
 dns-server = system, 223.5.5.5, 119.29.29.29
 skip-proxy = 127.0.0.1, 192.168.0.0/16, 10.0.0.0/8, 172.16.0.0/12, 100.64.0.0/10, localhost, *.local
-proxy-test-url = http://www.gstatic.com/generate_204
+proxy-test-url = ${DEFAULT_LATENCY_TEST_URL}
 resource-parser = https://raw.githubusercontent.com/sub-store-org/Sub-Store/master/scripts/sub-store-parser.js`);
 
     sections.push(`[Proxy]\nDIRECT = direct\n${proxyLines.join('\n')}`);
@@ -398,7 +399,7 @@ resource-parser = https://raw.githubusercontent.com/sub-store-org/Sub-Store/mast
         const icon = groupIcons[group.name] ? `, icon=${groupIcons[group.name]}` : '';
         const extra =
             type === 'url-test' || type === 'fallback'
-                ? `, url=http://www.gstatic.com/generate_204, interval=300, tolerance=50`
+                ? `, url=${DEFAULT_LATENCY_TEST_URL}, interval=300, tolerance=50`
                 : '';
         return `${group.name} = ${type}, ${proxies}${extra}${icon}`;
     });

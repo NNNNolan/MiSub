@@ -3,6 +3,7 @@
  * 输出格式对齐项目中的 Quantumult X parser，确保可解析回节点 URL。
  */
 
+import { DEFAULT_LATENCY_TEST_URL } from '../../../src/constants/latency-test-url.js';
 import { urlToClashProxy, urlsToClashProxies } from '../../utils/url-to-clash.js';
 import { getUniqueName } from './name-utils.js';
 import {
@@ -286,8 +287,9 @@ export function generateBuiltinQuanxConfig(nodeList, options = {}) {
         proxiesWithMetadata.push(clashProxy);
     }
 
+    const generalSection = `[general]\nserver_check_url = ${DEFAULT_LATENCY_TEST_URL}\nexcluded_routes = 192.168.0.0/16, 172.16.0.0/12, 100.64.0.0/10, 10.0.0.0/8`;
     if (proxyLines.length === 0) {
-        return '#!MANAGED-CONFIG http://example.com interval=86400 strict=false\n\n[general]\nserver_check_url = http://www.gstatic.com/generate_204\nexcluded_routes = 192.168.0.0/16, 172.16.0.0/12, 100.64.0.0/10, 10.0.0.0/8\n\n[dns]\nno-ipv6\nserver = 223.5.5.5\nserver = 119.29.29.29\n\n[server_remote]\n\n[server_local]\n\n[rewrite_remote]\n\n[rewrite_local]\n\n[mitm]\n';
+        return `#!MANAGED-CONFIG http://example.com interval=86400 strict=false\n\n${generalSection}\n\n[dns]\nno-ipv6\nserver = 223.5.5.5\nserver = 119.29.29.29\n\n[server_remote]\n\n[server_local]\n\n[rewrite_remote]\n\n[rewrite_local]\n\n[mitm]\n`;
     }
 
     const sections = [];
@@ -295,9 +297,7 @@ export function generateBuiltinQuanxConfig(nodeList, options = {}) {
         sections.push(`#!MANAGED-CONFIG ${managedConfigUrl} interval=${interval} strict=false`);
     }
 
-    sections.push(
-        `[general]\nserver_check_url = http://www.gstatic.com/generate_204\nexcluded_routes = 192.168.0.0/16, 172.16.0.0/12, 100.64.0.0/10, 10.0.0.0/8`
-    );
+    sections.push(generalSection);
     sections.push(`[dns]\nno-ipv6\nserver = 223.5.5.5\nserver = 119.29.29.29`);
     sections.push(`[server_remote]`);
     sections.push(`[server_local]\n${proxyLines.join('\n')}`);

@@ -1,3 +1,4 @@
+import { DEFAULT_LATENCY_TEST_URL } from '../../../../src/constants/latency-test-url.js';
 import { urlsToClashProxies } from '../../../utils/url-to-clash.js';
 import { normalizeUnifiedTemplateModel } from '../template-model.js';
 
@@ -277,21 +278,15 @@ function buildProxyGroupLine(group) {
     const filter =
         Array.isArray(group.filters) && group.filters.length > 0 ? group.filters.join('|') : '';
     const tolerance = group.options?.tolerance;
-    if (type === 'url-test') {
-        const base = filter
-            ? `${group.name} = url-test, policy-path=${filter}, url=${group.options?.url || 'http://www.gstatic.com/generate_204'}, interval=${group.options?.interval || 300}`
-            : `${group.name} = url-test, ${members}, url=${group.options?.url || 'http://www.gstatic.com/generate_204'}, interval=${group.options?.interval || 300}`;
-        return tolerance ? `${base}, tolerance=${tolerance}` : base;
-    }
-    if (type === 'fallback') {
-        const base = filter
-            ? `${group.name} = fallback, policy-path=${filter}, url=${group.options?.url || 'http://www.gstatic.com/generate_204'}, interval=${group.options?.interval || 300}`
-            : `${group.name} = fallback, ${members}, url=${group.options?.url || 'http://www.gstatic.com/generate_204'}, interval=${group.options?.interval || 300}`;
+    const testOptions = `url=${group.options?.url || DEFAULT_LATENCY_TEST_URL}, interval=${group.options?.interval || 300}`;
+    if (type === 'url-test' || type === 'fallback') {
+        const targets = filter ? `policy-path=${filter}` : members;
+        const base = `${group.name} = ${type}, ${targets}, ${testOptions}`;
         return tolerance ? `${base}, tolerance=${tolerance}` : base;
     }
     if (type === 'load-balance') {
         return filter
-            ? `${group.name} = load-balance, policy-path=${filter}, url=${group.options?.url || 'http://www.gstatic.com/generate_204'}, interval=${group.options?.interval || 300}`
+            ? `${group.name} = load-balance, policy-path=${filter}, ${testOptions}`
             : `${group.name} = load-balance, ${members}`;
     }
     return `${group.name} = select, ${members}`;
@@ -343,7 +338,7 @@ export function renderSurgeFromTemplateModel(model, options = {}) {
         'ipv6 = true',
         'ipv6-vif = auto',
         'internet-test-url = http://www.apple.com/library/test/success.html',
-        'proxy-test-url = http://www.gstatic.com/generate_204',
+        `proxy-test-url = ${DEFAULT_LATENCY_TEST_URL}`,
         'test-timeout = 5',
         '',
         '[Proxy]',

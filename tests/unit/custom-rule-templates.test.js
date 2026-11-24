@@ -89,8 +89,12 @@ describe('自定义规则模板 Phase 1 后端模型/API/渲染', () => {
                     id: 'tpl-a',
                     name: '本地模板',
                     type: 'ini',
-                    content:
-                        '[Proxy Group]\n🚀 节点选择 = select, []AUTO, DIRECT\n\n[Rule]\nMATCH,🚀 节点选择',
+                    content: [
+                        '[custom]',
+                        'custom_proxy_group=Auto`url-test`.*`http://www.gstatic.com/generate_204`300',
+                        'custom_proxy_group=🚀 节点选择`select`[]Auto`[]DIRECT',
+                        'ruleset=🚀 节点选择,[]FINAL',
+                    ].join('\n'),
                 },
             ],
         });
@@ -100,7 +104,7 @@ describe('自定义规则模板 Phase 1 后端模型/API/渲染', () => {
             kind: 'custom',
             value: 'tpl-a',
         });
-        expect(source.content).toContain('[Proxy Group]');
+        expect(source.content).toContain('http://www.gstatic.com/generate_204');
 
         const result = await ProcessorService.renderOutput({
             targetFormat: 'clash',
@@ -116,6 +120,9 @@ describe('自定义规则模板 Phase 1 后端模型/API/渲染', () => {
         expect(fetch).not.toHaveBeenCalled();
         expect(result.contentType).toBe('application/x-yaml; charset=utf-8');
         const parsed = yaml.load(result.content);
+        expect(parsed['proxy-groups'].find((group) => group.name === 'Auto')?.url).toBe(
+            'https://www.gstatic.com/generate_204'
+        );
         expect(parsed['proxy-groups'].some((group) => group.name === '🚀 节点选择')).toBe(true);
         expect(parsed.rules).toContain('MATCH,🚀 节点选择');
     });

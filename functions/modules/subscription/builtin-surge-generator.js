@@ -7,6 +7,7 @@
  * 注意：Surge 不支持 VLESS 协议，VLESS 节点会被跳过
  */
 
+import { DEFAULT_LATENCY_TEST_URL } from '../../../src/constants/latency-test-url.js';
 import { urlToClashProxy, urlsToClashProxies } from '../../utils/url-to-clash.js';
 import { getUniqueName } from './name-utils.js';
 import {
@@ -533,7 +534,7 @@ dns-server = 119.29.29.29, 223.5.5.5, system`);
         const proxies = group.proxies.join(', ');
         const extra =
             type === 'url-test' || type === 'fallback'
-                ? ', url=http://www.gstatic.com/generate_204, interval=300, tolerance=50'
+                ? `, url=${DEFAULT_LATENCY_TEST_URL}, interval=300, tolerance=50`
                 : '';
         return `${group.name} = ${type}, ${proxies}${extra}`;
     });

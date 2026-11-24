@@ -20,6 +20,9 @@ describe('Builtin target smoke output', () => {
         expect(parsed.proxies.length).toBeGreaterThan(0);
         expect(Array.isArray(parsed['proxy-groups'])).toBe(true);
         expect(parsed['proxy-groups'].length).toBeGreaterThan(0);
+        expect(parsed['proxy-groups'].find((group) => group.name === '🌐 DNS 出口')?.url).toBe(
+            'https://www.gstatic.com/generate_204'
+        );
         expect(Array.isArray(parsed.rules)).toBe(true);
         expect(parsed.rules.length).toBeGreaterThan(0);
     });

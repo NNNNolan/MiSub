@@ -106,6 +106,7 @@ MATCH,节点选择
         expect(model.groups).toHaveLength(2);
         expect(model.rules).toHaveLength(3);
         expect(model.groups[0].name).toBe('节点选择');
+        expect(model.groups[1].options.url).toBe('https://www.gstatic.com/generate_204');
         expect(model.rules[2].type).toBe('match');
     });
 

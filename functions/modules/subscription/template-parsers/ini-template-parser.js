@@ -1,8 +1,9 @@
 import { createUnifiedTemplateModel } from '../template-model.js';
 import { pinRemoteRuleUrl } from '../builtin-rules-provider.js';
+import { upgradeLatencyTestUrls } from '../../../../src/constants/latency-test-url.js';
 
 function parseIniSections(templateText) {
-    const lines = String(templateText || '').split(/\r?\n/);
+    const lines = upgradeLatencyTestUrls(String(templateText || '')).split(/\r?\n/);
     const sections = new Map();
     let currentSection = 'custom'; // Default to custom if no section headers are found
 

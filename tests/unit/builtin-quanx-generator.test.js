@@ -20,7 +20,7 @@ describe('Quantumult X 内置生成器', () => {
         expect(result).toContain('[rewrite_remote]');
         expect(result).toContain('[rewrite_local]');
         expect(result).toContain('[mitm]');
-        expect(result).toContain('server_check_url = http://www.gstatic.com/generate_204');
+        expect(result).toContain('server_check_url = https://www.gstatic.com/generate_204');
         expect(result).toContain(
             'excluded_routes = 192.168.0.0/16, 172.16.0.0/12, 100.64.0.0/10, 10.0.0.0/8'
         );
@@ -87,6 +87,7 @@ describe('Quantumult X 内置生成器', () => {
     it('should avoid pseudo DIRECT node even when node list is empty', () => {
         const result = generateBuiltinQuanxConfig('');
 
+        expect(result).toContain('server_check_url = https://www.gstatic.com/generate_204');
         expect(result).not.toContain('DIRECT = direct');
         expect(result).toContain('[server_local]');
         expect(result).toContain('[mitm]');

@@ -1,3 +1,4 @@
+import { DEFAULT_LATENCY_TEST_URL } from '../../../../src/constants/latency-test-url.js';
 import { urlsToClashProxies } from '../../../utils/url-to-clash.js';
 import { normalizeUnifiedTemplateModel } from '../template-model.js';
 
@@ -232,8 +233,8 @@ export function renderQuanxFromTemplateModel(model, options = {}) {
     return [
         '[general]',
         '; 监听端口',
-        'network_check_url=http://www.gstatic.com/generate_204',
-        'server_check_url=http://www.gstatic.com/generate_204',
+        `network_check_url=${DEFAULT_LATENCY_TEST_URL}`,
+        `server_check_url=${DEFAULT_LATENCY_TEST_URL}`,
         '',
         '[dns]',
         'no-ipv6',

@@ -1,3 +1,4 @@
+import { DEFAULT_LATENCY_TEST_URL } from '../../../src/constants/latency-test-url.js';
 import { groupNodeLinesByRegion } from './region-groups.js';
 import { DNS_PROXY_GROUP, SINGBOX_CN_RULE_SET } from './safe-dns.js';
 
@@ -85,7 +86,7 @@ function dnsProxyGroup(proxyNames) {
         type: 'url-test',
         proxies: proxyNames.length > 0 ? proxyNames : ['REJECT'],
         hidden: true,
-        options: { url: 'http://www.gstatic.com/generate_204', interval: 300, tolerance: 50 },
+        options: { url: DEFAULT_LATENCY_TEST_URL, interval: 300, tolerance: 50 },
     };
 }
 
@@ -100,14 +101,14 @@ function aiPolicyGroups(proxyNames, regionNames, { relay = false } = {}) {
             type: 'url-test',
             proxies: nodeCandidates,
             hidden: true,
-            options: { url: 'http://www.gstatic.com/generate_204', interval: 300, tolerance: 50 },
+            options: { url: DEFAULT_LATENCY_TEST_URL, interval: 300, tolerance: 50 },
         },
         {
             name: AI_FALLBACK_GROUP,
             type: 'fallback',
             proxies: nodeCandidates,
             hidden: true,
-            options: { url: 'http://www.gstatic.com/generate_204', interval: 300, tolerance: 50 },
+            options: { url: DEFAULT_LATENCY_TEST_URL, interval: 300, tolerance: 50 },
         },
         { name: '🤖 智能 AI', type: 'select', proxies: candidates },
         ...AI_SERVICE_RULES.map((service) => ({
@@ -211,7 +212,7 @@ function _generateRegionGroups(proxies, options = {}) {
             type: 'url-test',
             proxies: r.tags,
             hidden: true,
-            options: { url: 'http://www.gstatic.com/generate_204', interval: 300, tolerance: 50 },
+            options: { url: DEFAULT_LATENCY_TEST_URL, interval: 300, tolerance: 50 },
         });
     });
 

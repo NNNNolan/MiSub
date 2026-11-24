@@ -196,12 +196,18 @@ proxy-groups:
     type: url-test
     include-all: true
     filter: (?i)港|hk|hong ?kong|🇭🇰
+    url: http://www.gstatic.com/generate_204
+proxy-providers:
+  Airport:
+    type: http
+    url: http://www.gstatic.com/generate_204-other
+    health-check: {enable: true, url: 'http://www.gstatic.com/generate_204?probe=1#check'}
 rule-providers:
   AI:
     type: http
     behavior: domain
     format: mrs
-    url: https://example.com/ai.mrs
+    url: http://example.com/ai.mrs?check=http://www.gstatic.com/generate_204
 rules:
   - RULE-SET,AI,🚀 节点选择
   - MATCH,🚀 节点选择
@@ -213,7 +219,7 @@ rules:
 
         const result = await ProcessorService.renderOutput({
             targetFormat: 'clash',
-            combinedNodeList: NODE_LIST,
+            combinedNodeList: `trojan://${encodeURIComponent('http://www.gstatic.com/generate_204')}@1.1.1.1:443#HK-01`,
             subName: 'ShellCrash',
             config: { UpdateInterval: 86400 },
             builtinOptions: { ruleLevel: 'std', enableUdp: true, skipCertVerify: false },
@@ -227,6 +233,16 @@ rules:
 
         expect(result.contentType).toBe('application/x-yaml; charset=utf-8');
         expect(result.headers['X-MiSub-Template-Mode']).toBe('clash-yaml-profile');
+        const profile = yaml.load(result.content);
+        expect(profile['proxy-groups'][1].url).toBe('https://www.gstatic.com/generate_204');
+        expect(profile['proxy-providers'].Airport).toMatchObject({
+            url: 'http://www.gstatic.com/generate_204-other',
+            'health-check': { url: 'https://www.gstatic.com/generate_204?probe=1#check' },
+        });
+        expect(profile['rule-providers'].AI.url).toBe(
+            'http://example.com/ai.mrs?check=http://www.gstatic.com/generate_204'
+        );
+        expect(profile.proxies[0].password).toBe('http://www.gstatic.com/generate_204');
         expect(result.content).toContain('proxy-groups:');
         expect(result.content).toContain('name: 🚀 节点选择');
         expect(result.content).toContain('name: 🇭🇰 香港');

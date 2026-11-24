@@ -1,3 +1,5 @@
+import { DEFAULT_LATENCY_TEST_URL } from '../../../src/constants/latency-test-url.js';
+
 export const BUILTIN_TEMPLATE_REGISTRY = {
     clash_misub_minimal: {
         id: 'clash_misub_minimal',
@@ -14,8 +16,8 @@ ruleset=🎯 全球直连,[]GEOIP,CN
 ruleset=🐟 漏网之鱼,[]FINAL
 
 custom_proxy_group=🚀 节点选择\`select\`[]♻️ 自动选择\`[]🔯 故障转移\`[]<%regionStrategyChain%>\`[]☑️ 手动切换\`[]DIRECT
-custom_proxy_group=♻️ 自动选择\`url-test\`.*\`http://www.gstatic.com/generate_204\`300,,50
-custom_proxy_group=🔯 故障转移\`fallback\`.*\`http://www.gstatic.com/generate_204\`300,,50
+custom_proxy_group=♻️ 自动选择\`url-test\`.*\`${DEFAULT_LATENCY_TEST_URL}\`300,,50
+custom_proxy_group=🔯 故障转移\`fallback\`.*\`${DEFAULT_LATENCY_TEST_URL}\`300,,50
 custom_proxy_group=☑️ 手动切换\`select\`.*
 custom_proxy_group=🎬 流媒体\`select\`[]🚀 节点选择\`[]♻️ 自动选择\`[]DIRECT
 custom_proxy_group=📲 电报消息\`select\`[]🚀 节点选择\`[]♻️ 自动选择\`[]DIRECT
@@ -44,16 +46,16 @@ ruleset=🐟 漏网之鱼,[]FINAL
 
 custom_proxy_group=🚀 节点选择\`select\`[]♻️ 自动选择\`[]<%regionStrategyChain%>\`[]☑️ 手动切换\`[]DIRECT
 custom_proxy_group=☑️ 手动切换\`select\`.*
-custom_proxy_group=♻️ 自动选择\`url-test\`[]<%regionStrategyChain%>\`http://www.gstatic.com/generate_204\`300,,50
+custom_proxy_group=♻️ 自动选择\`url-test\`[]<%regionStrategyChain%>\`${DEFAULT_LATENCY_TEST_URL}\`300,,50
 custom_proxy_group=📲 电报消息\`select\`[]🚀 节点选择\`[]♻️ 自动选择\`[]DIRECT
 custom_proxy_group=📹 油管视频\`select\`[]🚀 节点选择\`[]♻️ 自动选择\`[]DIRECT
 custom_proxy_group=🎥 奈飞视频\`select\`[]🚀 节点选择\`[]♻️ 自动选择\`[]DIRECT
 custom_proxy_group=🎯 全球直连\`select\`[]DIRECT\`[]🚀 节点选择
 custom_proxy_group=🛑 广告拦截\`select\`[]REJECT\`[]DIRECT
 custom_proxy_group=🐟 漏网之鱼\`select\`[]🚀 节点选择\`[]♻️ 自动选择\`[]DIRECT
-custom_proxy_group=🇭🇰 香港节点\`url-test\`(港|HK|Hong Kong|HKG)\`http://www.gstatic.com/generate_204\`300,,50
-custom_proxy_group=🇯🇵 日本节点\`url-test\`(日本|JP|Japan|Tokyo|NRT|KIX)\`http://www.gstatic.com/generate_204\`300,,50
-custom_proxy_group=🇺🇸 美国节点\`url-test\`(美|US|United States|LAX|SJC|SEA)\`http://www.gstatic.com/generate_204\`300,,100
+custom_proxy_group=🇭🇰 香港节点\`url-test\`(港|HK|Hong Kong|HKG)\`${DEFAULT_LATENCY_TEST_URL}\`300,,50
+custom_proxy_group=🇯🇵 日本节点\`url-test\`(日本|JP|Japan|Tokyo|NRT|KIX)\`${DEFAULT_LATENCY_TEST_URL}\`300,,50
+custom_proxy_group=🇺🇸 美国节点\`url-test\`(美|US|United States|LAX|SJC|SEA)\`${DEFAULT_LATENCY_TEST_URL}\`300,,100
 
 enable_rule_generator=true
 overwrite_original_rules=true`,
@@ -92,7 +94,7 @@ ruleset=🎯 全球直连,[]GEOIP,CN
 ruleset=🐟 漏网之鱼,[]FINAL
 
 custom_proxy_group=🚀 节点选择\`select\`[]♻️ 自动选择\`[]<%regionStrategyChain%>\`[]☑️ 手动切换\`[]DIRECT
-custom_proxy_group=♻️ 自动选择\`url-test\`[]<%regionStrategyChain%>\`http://www.gstatic.com/generate_204\`300,,50
+custom_proxy_group=♻️ 自动选择\`url-test\`[]<%regionStrategyChain%>\`${DEFAULT_LATENCY_TEST_URL}\`300,,50
 custom_proxy_group=☑️ 手动切换\`select\`.*
 custom_proxy_group=🤖 AI 服务\`select\`[]🚀 节点选择\`[]♻️ 自动选择\`[]🇺🇸 美国节点\`[]🇯🇵 日本节点
 custom_proxy_group=📹 油管视频\`select\`[]🚀 节点选择\`[]♻️ 自动选择\`[]DIRECT
@@ -124,8 +126,8 @@ ruleset=🐟 漏网之鱼,[]FINAL
 
 custom_proxy_group=🚀 节点选择\`select\`[]♻️ 自动选择\`[]🔯 故障转移\`[]<%regionStrategyChain%>\`[]☑️ 手动切换\`[]DIRECT
 custom_proxy_group=☑️ 手动切换\`select\`.*
-custom_proxy_group=♻️ 自动选择\`url-test\`.*\`http://www.gstatic.com/generate_204\`300,,50
-custom_proxy_group=🔯 故障转移\`fallback\`.*\`http://www.gstatic.com/generate_204\`300,,50
+custom_proxy_group=♻️ 自动选择\`url-test\`.*\`${DEFAULT_LATENCY_TEST_URL}\`300,,50
+custom_proxy_group=🔯 故障转移\`fallback\`.*\`${DEFAULT_LATENCY_TEST_URL}\`300,,50
 custom_proxy_group=🤖 AI 服务\`select\`[]🚀 节点选择\`[]🔯 故障转移\`[]🇺🇸 美国节点\`[]🌍 狮城节点
 custom_proxy_group=📲 电报消息\`select\`[]🚀 节点选择\`[]🇸🇬 狮城节点\`[]🇭🇰 香港节点
 custom_proxy_group=📹 油管视频\`select\`[]🚀 节点选择\`[]♻️ 自动选择
@@ -153,8 +155,8 @@ ruleset=🎯 全球直连,[]GEOIP,CN
 ruleset=🐟 漏网之鱼,[]FINAL
 
 custom_proxy_group=🚀 节点选择\`select\`[]♻️ 自动选择\`[]🔯 故障转移\`[]🇺🇲 美国节点\`[]🇸🇬 狮城节点\`[]☑️ 手动切换\`[]DIRECT
-custom_proxy_group=♻️ 自动选择\`url-test\`.*\`http://www.gstatic.com/generate_204\`300,,50
-custom_proxy_group=🔯 故障转移\`fallback\`.*\`http://www.gstatic.com/generate_204\`300,,50
+custom_proxy_group=♻️ 自动选择\`url-test\`.*\`${DEFAULT_LATENCY_TEST_URL}\`300,,50
+custom_proxy_group=🔯 故障转移\`fallback\`.*\`${DEFAULT_LATENCY_TEST_URL}\`300,,50
 custom_proxy_group=☑️ 手动切换\`select\`.*
 custom_proxy_group=🤖 AI 核心服务\`select\`[]🔯 故障转移\`[]🇺🇲 美国节点\`[]🇸🇬 狮城节点\`[]🚀 节点选择
 custom_proxy_group=🌍 国外媒体\`select\`[]🚀 节点选择\`[]♻️ 自动选择\`[]DIRECT
@@ -177,8 +179,8 @@ ruleset=🎯 全球直连,[]GEOIP,CN
 ruleset=🐟 漏网之鱼,[]FINAL
 
 custom_proxy_group=🚀 节点选择\`select\`[]♻️ 自动选择\`[]🎮 游戏平台\`[]☑️ 手动切换
-custom_proxy_group=🎮 游戏平台\`url-test\`.*\`http://www.gstatic.com/generate_204\`300,,20
-custom_proxy_group=♻️ 自动选择\`url-test\`.*\`http://www.gstatic.com/generate_204\`300,,50
+custom_proxy_group=🎮 游戏平台\`url-test\`.*\`${DEFAULT_LATENCY_TEST_URL}\`300,,20
+custom_proxy_group=♻️ 自动选择\`url-test\`.*\`${DEFAULT_LATENCY_TEST_URL}\`300,,50
 custom_proxy_group=☑️ 手动切换\`select\`.*
 
 enable_rule_generator=true

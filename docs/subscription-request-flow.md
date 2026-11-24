@@ -156,6 +156,8 @@ profile 模式下，如果访问日志开启且不是 `callback_token`/内部请
 
 自动模式下，内置引擎收到显式 `level` / `ruleLevel` 时使用原生规则。Hiddify 兼容输出、其他目标格式和纯节点导出不使用默认 Clash 模板。显式选择该目录的预设时，本地 Sing-box 仍用原生规则，并返回 `X-MiSub-Template-Warning: clash-rules-use-native-singbox`：Clash 文本规则集不能当作 Sing-box JSON 读取。
 
+MiSub 本地生成配置时统一使用 `https://www.gstatic.com/generate_204`。内置、已保存的自定义模板和远程模板（包括缓存）里的同一 HTTP 测速地址会在渲染时升级；其他地址和模板原文不变。第三方转换器通过 302 直接下发的配置不经过本地渲染，要保证替换可使用内置转换。
+
 规则等级 `ruleLevel`：
 
 - URL `level` 或 `ruleLevel` 优先。

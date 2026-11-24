@@ -23,6 +23,7 @@ import yaml from 'js-yaml';
 import { urlsToClashProxies } from '../utils/url-to-clash.js';
 import { resolveSafeDnsConfig } from '../modules/subscription/safe-dns.js';
 import { applyMihomoChainProxyToClashConfig } from '../modules/subscription/mihomo-chain-proxy.js';
+import { upgradeLatencyTestUrls } from '../../src/constants/latency-test-url.js';
 
 function getTemplateExtension(templateUrl) {
     const raw = typeof templateUrl === 'string' ? templateUrl.trim() : '';
@@ -114,7 +115,7 @@ function normalizeYamlChainConfigs(config) {
 }
 
 export function renderClashYamlProfileTemplate(templateText, nodeList, options = {}) {
-    const config = yaml.load(templateText);
+    const config = yaml.load(upgradeLatencyTestUrls(templateText));
     if (!config || typeof config !== 'object' || Array.isArray(config)) {
         return '';
     }

@@ -3,6 +3,7 @@
  * 将节点 URL 列表转换为基础可用的 sing-box JSON 配置。
  */
 
+import { DEFAULT_LATENCY_TEST_URL } from '../../../src/constants/latency-test-url.js';
 import { urlToClashProxy, urlsToClashProxies } from '../../utils/url-to-clash.js';
 import { getUniqueName } from './name-utils.js';
 import { groupNodeLinesByRegion } from './region-groups.js';
@@ -345,7 +346,7 @@ export function generateBuiltinSingboxConfig(nodeList, options = {}) {
             outbounds: group.proxies,
             ...(type === 'urltest'
                 ? {
-                      url: 'http://www.gstatic.com/generate_204',
+                      url: DEFAULT_LATENCY_TEST_URL,
                       interval: '10m',
                       tolerance: 50,
                   }

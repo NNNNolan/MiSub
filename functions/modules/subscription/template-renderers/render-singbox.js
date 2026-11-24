@@ -1,3 +1,4 @@
+import { DEFAULT_LATENCY_TEST_URL } from '../../../../src/constants/latency-test-url.js';
 import { urlsToClashProxies } from '../../../utils/url-to-clash.js';
 import { normalizeUnifiedTemplateModel } from '../template-model.js';
 import { buildSingboxDnsConfig, DNS_PROXY_GROUP, SINGBOX_CN_RULE_SET } from '../safe-dns.js';
@@ -277,7 +278,7 @@ function buildGroupOutbounds(groups) {
         };
 
         if (mappedType === 'urltest') {
-            outbound.url = group.options?.url || 'http://www.gstatic.com/generate_204';
+            outbound.url = group.options?.url || DEFAULT_LATENCY_TEST_URL;
             outbound.interval = `${group.options?.interval || 300}s`;
         }
 

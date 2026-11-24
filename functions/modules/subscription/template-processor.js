@@ -1,3 +1,4 @@
+import { DEFAULT_LATENCY_TEST_URL } from '../../../src/constants/latency-test-url.js';
 import { groupNodeLinesByRegion } from './region-groups.js';
 import { AI_SERVICE_RULES } from './builtin-rules-provider.js';
 import { DNS_PROXY_GROUP } from './safe-dns.js';
@@ -218,7 +219,7 @@ function ensureDnsProxyGroup(model) {
         members: proxyNames.length > 0 ? proxyNames : ['REJECT'],
         filters: [],
         options: {
-            url: 'http://www.gstatic.com/generate_204',
+            url: DEFAULT_LATENCY_TEST_URL,
             interval: 300,
             tolerance: 50,
         },
@@ -271,7 +272,7 @@ function ensureAiPolicy(model) {
             type: 'url-test',
             members: nodeCandidates,
             filters: [],
-            options: { url: 'http://www.gstatic.com/generate_204', interval: 300, tolerance: 50 },
+            options: { url: DEFAULT_LATENCY_TEST_URL, interval: 300, tolerance: 50 },
         });
         existingNames.add('🤖 AI 自动');
     }
@@ -281,7 +282,7 @@ function ensureAiPolicy(model) {
             type: 'fallback',
             members: nodeCandidates,
             filters: [],
-            options: { url: 'http://www.gstatic.com/generate_204', interval: 300, tolerance: 50 },
+            options: { url: DEFAULT_LATENCY_TEST_URL, interval: 300, tolerance: 50 },
         });
         existingNames.add('🤖 AI 故障转移');
     }
@@ -374,7 +375,7 @@ export function applySmartModelOptimizations(model) {
                     type: 'url-test',
                     members: region.tags,
                     options: {
-                        url: 'http://www.gstatic.com/generate_204',
+                        url: DEFAULT_LATENCY_TEST_URL,
                         interval: '300',
                         tolerance: '50',
                     },

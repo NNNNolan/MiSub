@@ -1,3 +1,4 @@
+import { DEFAULT_LATENCY_TEST_URL } from '../../../../src/constants/latency-test-url.js';
 import { urlsToClashProxies } from '../../../utils/url-to-clash.js';
 import { normalizeUnifiedTemplateModel } from '../template-model.js';
 
@@ -262,21 +263,14 @@ function buildGroupLine(group) {
     const filter =
         Array.isArray(group.filters) && group.filters.length > 0 ? group.filters.join('|') : '';
     const tolerance = group.options?.tolerance;
-    if (type === 'url-test') {
-        const base = filter
-            ? `${group.name} = url-test, ${members}, url=${group.options?.url || 'http://www.gstatic.com/generate_204'}, interval=${group.options?.interval || 300}, filter=${filter}`
-            : `${group.name} = url-test, ${members}, url=${group.options?.url || 'http://www.gstatic.com/generate_204'}, interval=${group.options?.interval || 300}`;
-        return tolerance ? `${base}, tolerance=${tolerance}` : base;
-    }
-    if (type === 'fallback') {
-        const base = filter
-            ? `${group.name} = fallback, ${members}, url=${group.options?.url || 'http://www.gstatic.com/generate_204'}, interval=${group.options?.interval || 300}, filter=${filter}`
-            : `${group.name} = fallback, ${members}, url=${group.options?.url || 'http://www.gstatic.com/generate_204'}, interval=${group.options?.interval || 300}`;
+    const testOptions = `url=${group.options?.url || DEFAULT_LATENCY_TEST_URL}, interval=${group.options?.interval || 300}`;
+    if (type === 'url-test' || type === 'fallback') {
+        const base = `${group.name} = ${type}, ${members}, ${testOptions}${filter ? `, filter=${filter}` : ''}`;
         return tolerance ? `${base}, tolerance=${tolerance}` : base;
     }
     if (type === 'load-balance') {
         return filter
-            ? `${group.name} = load-balance, ${members}, filter=${filter}, url=${group.options?.url || 'http://www.gstatic.com/generate_204'}, interval=${group.options?.interval || 300}`
+            ? `${group.name} = load-balance, ${members}, filter=${filter}, ${testOptions}`
             : `${group.name} = load-balance, ${members}`;
     }
     return `${group.name} = select, ${members}`;
@@ -348,7 +342,7 @@ export function renderLoonFromTemplateModel(model, options = {}) {
         'wifi-access-socks5-port = 7221',
         'resource-parser = https://github.com/sub-store-org/Sub-Store/releases/latest/download/sub-store-parser.loon.min.js',
         'geoip-url = https://gitlab.com/Masaiki/GeoIP2-CN/-/raw/release/Country.mmdb',
-        'proxy-test-url = http://www.gstatic.com/generate_204',
+        `proxy-test-url = ${DEFAULT_LATENCY_TEST_URL}`,
         'internet-test-url = http://www.apple.com/library/test/success.html',
 
         '',

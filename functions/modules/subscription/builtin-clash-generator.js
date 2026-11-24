@@ -239,7 +239,7 @@ export function generateBuiltinClashConfig(nodeList, options = {}) {
                 'subscription-url': options.managedConfigUrl || '',
             },
 
-            'proxy-groups': proxyGroups,
+            'proxy-groups': proxyGroups.map(({ options, ...group }) => ({ ...group, ...options })),
             ...(Object.keys(ruleProviders).length ? { 'rule-providers': ruleProviders } : {}),
             rules: clashRules,
         };

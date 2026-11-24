@@ -7,6 +7,7 @@ const ONLINE_INI = [
     'ruleset=🚀 节点选择,https://raw.githubusercontent.com/cmliu/ACL4SSR/refs/heads/main/Clash/PlayStore.list',
     'ruleset=🐟 漏网之鱼,[]FINAL',
     'custom_proxy_group=🚀 节点选择`select`.*',
+    'custom_proxy_group=Auto`url-test`.*`http://www.gstatic.com/generate_204`300,,50',
     'custom_proxy_group=🐟 漏网之鱼`select`[]🚀 节点选择`[]DIRECT',
 ].join('\n');
 
@@ -359,6 +360,9 @@ describe('handleMisubRequest regression coverage', () => {
             expect(response.status).toBe(200);
             const output = yaml.load(text);
             expect(output.rules).toEqual(['RULE-SET,playstore_0,🚀 节点选择', 'MATCH,🐟 漏网之鱼']);
+            expect(output['proxy-groups'].find((group) => group.name === 'Auto')?.url).toBe(
+                'https://www.gstatic.com/generate_204'
+            );
             expect(output['rule-providers'].playstore_0).toMatchObject({
                 url: 'https://cdn.jsdelivr.net/gh/cmliu/ACL4SSR@main/Clash/PlayStore.list',
                 format: 'text',
