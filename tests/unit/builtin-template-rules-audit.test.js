@@ -90,7 +90,7 @@ describe('Builtin template rule audit', () => {
         expect(autoGroup?.members).toContain('🇭🇰 香港节点');
         expect(autoGroup?.members).toContain('🇯🇵 日本节点');
         expect(autoGroup?.members).toContain('🇺🇸 美国节点');
-        expect(autoGroup?.members).toContain('🌍 狮城节点');
+        expect(autoGroup?.members).toContain('🇸🇬 狮城节点');
         expect(autoGroup?.members).not.toContain('🇺🇲 美国节点');
     });
 
@@ -123,6 +123,7 @@ describe('Builtin template rule audit', () => {
         expect(aiGroup?.members).toContain('🔯 故障转移');
         expect(aiGroup?.members).toContain('🇺🇸 美国节点');
         expect(aiGroup?.members).not.toContain('🇺🇲 美国节点');
+        expect(aiGroup?.members).toContain('🇸🇬 狮城节点');
     });
 
     it('routes common AI service domains to the AI group before China and final rules in Clash and sing-box output', () => {

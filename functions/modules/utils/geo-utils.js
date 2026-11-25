@@ -8,9 +8,9 @@
  * 支持多语言地区识别
  */
 export const REGION_KEYWORDS = {
-    香港: ['HK', 'HKG', 'HKT', '香港', 'Hong Kong', 'HongKong'],
-    台湾: ['TW', 'TPE', '台湾', '台北', 'Taiwan', 'Taipei'],
-    新加坡: ['SG', 'SIN', '新加坡', 'Singapore'],
+    香港: ['HK', 'HKG', 'HKT', '香港', '港', 'Hong Kong', 'HongKong'],
+    台湾: ['TW', 'TPE', '台湾', '台', '台北', 'Taiwan', 'Taipei'],
+    新加坡: ['SG', 'SIN', '新加坡', '狮城', '新', 'Singapore'],
     日本: [
         'JP',
         'JPN',
@@ -21,6 +21,7 @@ export const REGION_KEYWORDS = {
         '东京',
         '大阪',
         '日本',
+        '日',
         'Japan',
         'Tokyo',
         'Osaka',
@@ -39,6 +40,9 @@ export const REGION_KEYWORDS = {
         'DFW',
         'IAD',
         '美国',
+        '美',
+        '美西',
+        '美东',
         'United States',
         'America',
         'Los Angeles',
@@ -53,7 +57,7 @@ export const REGION_KEYWORDS = {
         '芝加哥',
     ],
     朝鲜: ['KP', 'PRK', '朝鲜', '北朝鲜', '平壤', 'North Korea', 'DPRK', 'Pyongyang'],
-    韩国: ['KR', 'KOR', 'ICN', '韩国', '首尔', 'Korea', 'Seoul'],
+    韩国: ['KR', 'KOR', 'ICN', '韩国', '韩', '首尔', 'Korea', 'Seoul'],
     英国: [
         'UK',
         'GB',
@@ -61,7 +65,9 @@ export const REGION_KEYWORDS = {
         'LGW',
         'LON',
         '英国',
+        '英',
         'Britain',
+        'England',
         'London',
         'Manchester',
         '伦敦',
@@ -73,6 +79,7 @@ export const REGION_KEYWORDS = {
         'FRA',
         'MUC',
         '德国',
+        '德',
         'Germany',
         'Frankfurt',
         'Berlin',
@@ -86,6 +93,7 @@ export const REGION_KEYWORDS = {
         'CDG',
         'ORY',
         '法国',
+        '法',
         'France',
         'Paris',
         'Lyon',
@@ -116,6 +124,8 @@ export const REGION_KEYWORDS = {
         'BNE',
         'PER',
         '澳大利亚',
+        '澳洲',
+        '澳',
         'Australia',
         'Sydney',
         'Melbourne',
@@ -143,6 +153,7 @@ export const REGION_KEYWORDS = {
         'SVO',
         'DME',
         '俄罗斯',
+        '俄国',
         'Russia',
         'Moscow',
         'Saint Petersburg',
@@ -869,6 +880,33 @@ function parseHostPort(value) {
     return { server: segment, port: '' };
 }
 
+// 地区识别只使用首个 | 前的名称，后续内容作为来源或备注保留。
+export function getRegionMatchName(nodeName) {
+    return typeof nodeName === 'string' ? nodeName.split('|', 1)[0] : '';
+}
+
+function matchesRegionKeyword(normalizedName, keyword) {
+    const lowerKeyword = keyword.toLowerCase();
+    let boundaryPattern;
+    if (/^[a-z]{1,3}$/.test(lowerKeyword)) {
+        boundaryPattern = /[a-z]/;
+    } else if (/^[\u4e00-\u9fa5]$/.test(lowerKeyword)) {
+        // 中文单字简写可接编号或分隔符，避免将“新节点”识别为新加坡。
+        boundaryPattern = /[a-z\u4e00-\u9fa5]/;
+    } else {
+        return normalizedName.includes(lowerKeyword);
+    }
+
+    let index = normalizedName.indexOf(lowerKeyword);
+    while (index !== -1) {
+        const before = normalizedName[index - 1] || '';
+        const after = normalizedName[index + lowerKeyword.length] || '';
+        if (!boundaryPattern.test(before) && !boundaryPattern.test(after)) return true;
+        index = normalizedName.indexOf(lowerKeyword, index + 1);
+    }
+    return false;
+}
+
 /**
  * 从节点名称中识别地区
  * @param {string} nodeName - 节点名称
@@ -879,38 +917,12 @@ export function extractNodeRegion(nodeName) {
         return '其他';
     }
 
-    const normalizedNodeName = nodeName.toLowerCase();
+    const normalizedNodeName = getRegionMatchName(nodeName).toLowerCase();
 
     // 遍历所有地区关键词
     for (const [regionName, keywords] of Object.entries(REGION_KEYWORDS)) {
-        for (const keyword of keywords) {
-            const lowerKeyword = keyword.toLowerCase();
-
-            // 对于短关键词（2-3个字符的纯英文），要求匹配独立单词边界
-            // 避免 "kristi" 匹配 "kr"，"user" 匹配 "us" 等误匹配
-            if (lowerKeyword.length <= 3 && /^[a-z]+$/i.test(lowerKeyword)) {
-                // 使用更兼容的方式检查单词边界（不使用 lookbehind）
-                const idx = normalizedNodeName.indexOf(lowerKeyword);
-                if (idx !== -1) {
-                    // 检查前一个字符
-                    const charBefore = idx > 0 ? normalizedNodeName[idx - 1] : '';
-                    const isLetterBefore = charBefore && /[a-z]/i.test(charBefore);
-
-                    // 检查后一个字符
-                    const charAfter = normalizedNodeName[idx + lowerKeyword.length] || '';
-                    const isLetterAfter = charAfter && /[a-z]/i.test(charAfter);
-
-                    // 只有当前后都不是字母时才匹配
-                    if (!isLetterBefore && !isLetterAfter) {
-                        return regionName;
-                    }
-                }
-            } else {
-                // 对于长关键词或中文，直接使用 includes
-                if (normalizedNodeName.includes(lowerKeyword)) {
-                    return regionName;
-                }
-            }
+        if (keywords.some((keyword) => matchesRegionKeyword(normalizedNodeName, keyword))) {
+            return regionName;
         }
     }
 
@@ -954,16 +966,10 @@ export function containsRegion(nodeName, region) {
         return false;
     }
 
-    const normalizedNodeName = nodeName.toLowerCase();
-    const keywords = REGION_KEYWORDS[region];
-
-    for (const keyword of keywords) {
-        if (normalizedNodeName.includes(keyword.toLowerCase())) {
-            return true;
-        }
-    }
-
-    return false;
+    const normalizedNodeName = getRegionMatchName(nodeName).toLowerCase();
+    return REGION_KEYWORDS[region].some((keyword) =>
+        matchesRegionKeyword(normalizedNodeName, keyword)
+    );
 }
 
 /**

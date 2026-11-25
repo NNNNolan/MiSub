@@ -298,6 +298,85 @@ MATCH,节点选择
         expect(model.groups.some((group) => group.name === '🚀 节点选择')).toBe(true);
     });
 
+    it('matches ACL4SSR region filters before | without matching Plus as US', () => {
+        const usNames = [
+            'US 🇺🇸 美国 | USA 04 PRO',
+            '🇺🇸 US 美国 05|http___aikua',
+            'US01|香港',
+            'US Plus 01|TW',
+            '洛杉矶 01|SG',
+        ];
+        const hk = 'HK Plus 香港HKT家宽|http___aikua';
+        const tw = 'TW Plus 台湾Hinet家宽|http___aikua';
+        const sg = 'SG Plus 新加坡家宽|http___aikua';
+        const carrier = 'HK 01|US|电信';
+        const protocol = 'JP 01|vless';
+        const names = [...usNames, hk, tw, sg, carrier, protocol, '未知节点|美国|US', 'us01|HK'];
+        const rendered = renderClashFromIniTemplate(
+            [
+                '[custom]',
+                'custom_proxy_group=节点选择`select`.*',
+                'custom_proxy_group=🇺🇲 美国节点`url-test`(美|波特兰|达拉斯|俄勒冈|凤凰城|费利蒙|硅谷|拉斯维加斯|洛杉矶|圣何塞|圣克拉拉|西雅图|芝加哥|US|United States|ATL|BUF|DFW|EWR|IAD|LAX|MCI|MIA|ORD|PHX|PDX|SEA|SJC)`http://www.gstatic.com/generate_204`300,,150',
+                'custom_proxy_group=🇭🇰 香港节点`url-test`(港|HK|Hong Kong)`http://www.gstatic.com/generate_204`300',
+                'custom_proxy_group=🇨🇳 台湾节点`url-test`(台|TW|Taiwan)`http://www.gstatic.com/generate_204`300',
+                'custom_proxy_group=🇸🇬 狮城节点`url-test`(新加坡|SG|Singapore)`http://www.gstatic.com/generate_204`300',
+                'custom_proxy_group=运营商`select`(电信|VLESS)',
+                'custom_proxy_group=新节点`select`(VLESS)',
+                'ruleset=节点选择,[]FINAL',
+            ].join('\n'),
+            {
+                proxies: names.map((name) => ({
+                    name,
+                    type: 'trojan',
+                    server: 'proxy.example.com',
+                    port: 443,
+                    password: 'pass',
+                })),
+                ruleLevel: 'none',
+                requireRules: true,
+            }
+        );
+        const parsed = yaml.load(rendered);
+        const members = (name) =>
+            parsed['proxy-groups'].find((group) => group.name === name)?.proxies;
+
+        expect(members('🇺🇲 美国节点')).toEqual(usNames);
+        expect(members('🇭🇰 香港节点')).toEqual([hk, carrier]);
+        expect(members('🇨🇳 台湾节点')).toEqual([tw]);
+        expect(members('🇸🇬 狮城节点')).toEqual([sg]);
+        expect(members('运营商')).toEqual([carrier, protocol]);
+        expect(members('新节点')).toEqual([protocol]);
+        expect(members('节点选择')).toEqual(names);
+    });
+
+    it.each([
+        ['罗马尼亚节点', '(RO|罗马尼亚)', 'RO01', 'HK 02|RO'],
+        ['白俄罗斯节点', '(BY|白俄罗斯)', 'BY01', 'HK 03|BY'],
+    ])('recognizes the exact region group name %s', (groupName, filter, node, source) => {
+        const rendered = renderClashFromIniTemplate(
+            [
+                '[custom]',
+                `custom_proxy_group=${groupName}\`select\`${filter}`,
+                `ruleset=${groupName},[]FINAL`,
+            ].join('\n'),
+            {
+                proxies: [node, source].map((name) => ({
+                    name,
+                    type: 'trojan',
+                    server: 'proxy.example.com',
+                    port: 443,
+                    password: 'pass',
+                })),
+                ruleLevel: 'none',
+            }
+        );
+        const parsed = yaml.load(rendered);
+
+        expect(parsed['proxy-groups'].find((group) => group.name === groupName)?.proxies).toEqual([
+            node,
+        ]);
+    });
+
     it('omits Clash-only VMess udp_relay_mode from sing-box template output', () => {
         const vmessConfig = btoa(
             JSON.stringify({

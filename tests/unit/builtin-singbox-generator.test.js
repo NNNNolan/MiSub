@@ -7,7 +7,7 @@ const SS2022_V2RAY_PLUGIN_NODE =
 describe('Built-in Sing-box generator', () => {
     it('should generate a JSON config with outbounds', () => {
         const result = generateBuiltinSingboxConfig(
-            ['trojan://password@1.2.3.4:443#TestNode', 'trojan://password@1.2.3.5:443#JPNode'].join(
+            ['trojan://password@1.2.3.4:443#TestNode', 'trojan://password@1.2.3.5:443#JP-01'].join(
                 '\n'
             )
         );
@@ -78,7 +78,9 @@ describe('Built-in Sing-box generator', () => {
         const parsed = JSON.parse(result);
         const httpsNode = parsed.outbounds.find((outbound) => outbound.tag.endsWith('HttpsNode'));
         const socksNode = parsed.outbounds.find((outbound) => outbound.tag.endsWith('TlsSocks'));
-        const tlsHttpNode = parsed.outbounds.find((outbound) => outbound.tag.endsWith('TlsHttpNode'));
+        const tlsHttpNode = parsed.outbounds.find((outbound) =>
+            outbound.tag.endsWith('TlsHttpNode')
+        );
 
         expect(httpsNode?.tls?.enabled).toBe(true);
         expect(socksNode?.tls?.enabled).toBe(true);

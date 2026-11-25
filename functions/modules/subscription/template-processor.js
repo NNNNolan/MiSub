@@ -2,6 +2,14 @@ import { DEFAULT_LATENCY_TEST_URL } from '../../../src/constants/latency-test-ur
 import { groupNodeLinesByRegion } from './region-groups.js';
 import { AI_SERVICE_RULES } from './builtin-rules-provider.js';
 import { DNS_PROXY_GROUP } from './safe-dns.js';
+import { REGION_KEYWORDS, getRegionMatchName } from '../utils/geo-utils.js';
+
+// 地区组名使用完整地区名或别名，单字简写只用于节点名。
+const REGION_GROUP_NAMES = new Set(
+    Object.entries(REGION_KEYWORDS).flatMap(([region, keywords]) =>
+        [region, ...keywords].filter((name) => name.length > 1).map(normalizeGroupSemanticName)
+    )
+);
 
 /**
  * 解析并扩展策略组中的正则过滤器
@@ -16,6 +24,7 @@ function resolveGroupFilters(model) {
 
         group.members = group.members || [];
         const currentMembers = new Set(group.members);
+        const isRegionGroup = REGION_GROUP_NAMES.has(normalizeGroupSemanticName(group.name));
 
         group.filters.forEach((filter) => {
             if (filter === '.*') {
@@ -24,9 +33,11 @@ function resolveGroupFilters(model) {
             }
 
             try {
-                const regex = new RegExp(filter, 'i');
+                // 地区码保持模板大小写语义，US 不应命中 Plus。
+                const regex = new RegExp(filter, isRegionGroup ? '' : 'i');
                 proxyNames.forEach((name) => {
-                    if (regex.test(name)) {
+                    const matchName = isRegionGroup ? getRegionMatchName(name) : name;
+                    if (regex.test(matchName)) {
                         currentMembers.add(name);
                     }
                 });
